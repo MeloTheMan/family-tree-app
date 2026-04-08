@@ -9,6 +9,7 @@ import {
   Edge,
   NodeTypes,
   ReactFlowProvider,
+  useNodesInitialized,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -31,6 +32,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
 }: FamilyTreeProps) {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const nodesInitialized = useNodesInitialized();
 
   // Calculate tree layout - memoized to prevent recalculation
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(() => {
@@ -39,10 +41,11 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       nodesCount: result.nodes.length,
       edgesCount: result.edges.length,
       edges: result.edges,
-      relationships: initialRelationships
+      relationships: initialRelationships,
+      nodesInitialized
     });
     return result;
-  }, [initialMembers, initialRelationships]);
+  }, [initialMembers, initialRelationships, nodesInitialized]);
 
   // Handle node click to show detail panel
   const handleNodeClick = useCallback((memberId: string) => {
@@ -61,6 +64,9 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
         isSelected: node.id === selectedMemberId,
         onClick: () => handleNodeClick(node.id),
       },
+      // Add explicit dimensions for edge calculations
+      width: 192, // 48 * 4 (w-48 in Tailwind)
+      height: 128, // Approximate height of the node
     }));
   }, [layoutNodes, selectedMemberId, handleNodeClick]);
 
