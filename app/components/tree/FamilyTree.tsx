@@ -34,7 +34,14 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
 
   // Calculate tree layout - memoized to prevent recalculation
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(() => {
-    return calculateTreeLayout(initialMembers, initialRelationships);
+    const result = calculateTreeLayout(initialMembers, initialRelationships);
+    console.log('Tree layout calculated:', {
+      nodesCount: result.nodes.length,
+      edgesCount: result.edges.length,
+      edges: result.edges,
+      relationships: initialRelationships
+    });
+    return result;
   }, [initialMembers, initialRelationships]);
 
   // Handle node click to show detail panel
@@ -59,7 +66,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
 
   // Convert TreeEdge to ReactFlow Edge format with different styles - memoized
   const edges: Edge[] = useMemo(() => {
-    return layoutEdges.map((edge) => ({
+    const reactFlowEdges = layoutEdges.map((edge) => ({
       id: edge.id,
       source: edge.source,
       target: edge.target,
@@ -75,6 +82,8 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
         color: '#3b82f6',
       } : undefined,
     }));
+    console.log('ReactFlow edges:', reactFlowEdges);
+    return reactFlowEdges;
   }, [layoutEdges]);
 
   // Custom node types - memoized
@@ -156,6 +165,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
         nodesConnectable={false}
         elementsSelectable={false}
         className="transition-all duration-300"
+        proOptions={{ hideAttribution: true }}
       >
         <Background 
           variant={BackgroundVariant.Dots} 
