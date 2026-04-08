@@ -22,7 +22,7 @@ function MemberNode({ data }: MemberNodeProps) {
     <div
       onClick={onClick}
       className={`
-        w-40 sm:w-48 rounded-lg border-2 bg-white shadow-md transition-all duration-200 cursor-pointer
+        w-40 sm:w-48 rounded-lg border-2 bg-white shadow-md transition-all duration-200 cursor-move
         hover:shadow-xl hover:scale-105 active:scale-95 relative z-10
         ${isSelected ? 'border-blue-500 ring-2 ring-blue-300 shadow-lg' : 'border-gray-300'}
       `}

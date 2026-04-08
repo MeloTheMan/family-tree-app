@@ -33,6 +33,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
 }: FamilyTreeProps) {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [nodes, setNodes] = useState<Node[]>([]);
   const nodesInitialized = useNodesInitialized();
   const { fitView } = useReactFlow();
 
@@ -65,7 +66,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
   }, []);
 
   // Convert TreeNode to ReactFlow Node format - memoized
-  const nodes: Node[] = useMemo(() => {
+  const initialNodes: Node[] = useMemo(() => {
     return layoutNodes.map((node) => ({
       id: node.id,
       type: 'member',
@@ -79,8 +80,33 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       width: 192, // 48 * 4 (w-48 in Tailwind)
       height: 128, // Approximate height of the node
       zIndex: 10, // Nodes above edges
+      draggable: true, // Enable dragging
     }));
   }, [layoutNodes, selectedMemberId, handleNodeClick]);
+
+  // Update nodes when layout changes or selection changes
+  useEffect(() => {
+    setNodes(initialNodes);
+  }, [initialNodes]);
+
+  // Handle node drag - update node positions
+  const onNodesChange = useCallback((changes: any) => {
+    setNodes((nds) => {
+      const updatedNodes = [...nds];
+      changes.forEach((change: any) => {
+        if (change.type === 'position' && change.position) {
+          const nodeIndex = updatedNodes.findIndex(n => n.id === change.id);
+          if (nodeIndex !== -1) {
+            updatedNodes[nodeIndex] = {
+              ...updatedNodes[nodeIndex],
+              position: change.position,
+            };
+          }
+        }
+      });
+      return updatedNodes;
+    });
+  }, []);
 
   // Convert TreeEdge to ReactFlow Edge format with different styles - memoized
   const edges: Edge[] = useMemo(() => {
@@ -176,6 +202,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
         fitViewOptions={{
           padding: 0.2,
           minZoom: 0.1,
@@ -190,9 +217,9 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
         zoomOnScroll={true}
         zoomOnPinch={true}
         zoomOnDoubleClick={false}
-        nodesDraggable={false}
+        nodesDraggable={true}
         nodesConnectable={false}
-        elementsSelectable={false}
+        elementsSelectable={true}
         className="transition-all duration-300"
         proOptions={{ hideAttribution: true }}
       >
