@@ -66,22 +66,28 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
 
   // Convert TreeEdge to ReactFlow Edge format with different styles - memoized
   const edges: Edge[] = useMemo(() => {
-    const reactFlowEdges = layoutEdges.map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      type: edge.type === 'parent' ? 'smoothstep' : 'straight',
-      animated: false,
-      style: {
-        stroke: edge.type === 'parent' ? '#3b82f6' : '#10b981',
-        strokeWidth: edge.type === 'parent' ? 2 : 3,
-        transition: 'all 0.3s ease',
-      },
-      markerEnd: edge.type === 'parent' ? {
-        type: 'arrowclosed',
-        color: '#3b82f6',
-      } : undefined,
-    }));
+    const reactFlowEdges = layoutEdges.map((edge): Edge => {
+      const baseEdge: Edge = {
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        type: edge.type === 'parent' ? 'smoothstep' : 'straight',
+        animated: false,
+        style: {
+          stroke: edge.type === 'parent' ? '#3b82f6' : '#10b981',
+          strokeWidth: edge.type === 'parent' ? 2 : 3,
+        },
+      };
+
+      if (edge.type === 'parent') {
+        baseEdge.markerEnd = {
+          type: 'arrowclosed' as const,
+          color: '#3b82f6',
+        };
+      }
+
+      return baseEdge;
+    });
     console.log('ReactFlow edges:', reactFlowEdges);
     return reactFlowEdges;
   }, [layoutEdges]);
