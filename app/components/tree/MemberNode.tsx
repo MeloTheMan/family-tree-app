@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { memo, useState } from 'react';
+import { Handle, Position } from '@xyflow/react';
 import { Member } from '@/lib/types';
 
 interface MemberNodeData extends Member {
@@ -26,6 +27,12 @@ function MemberNode({ data }: MemberNodeProps) {
         ${isSelected ? 'border-blue-500 ring-2 ring-blue-300 shadow-lg' : 'border-gray-300'}
       `}
     >
+      {/* Connection handles for edges */}
+      <Handle type="target" position={Position.Top} className="!bg-blue-500 !w-2 !h-2" />
+      <Handle type="source" position={Position.Bottom} className="!bg-blue-500 !w-2 !h-2" />
+      <Handle type="source" position={Position.Left} className="!bg-green-500 !w-2 !h-2" />
+      <Handle type="source" position={Position.Right} className="!bg-green-500 !w-2 !h-2" />
+      
       {/* Photo Section */}
       <div className="relative h-24 sm:h-32 w-full overflow-hidden rounded-t-lg bg-gray-100">
         {memberData.photo_url ? (
