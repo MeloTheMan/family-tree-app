@@ -78,6 +78,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       // Add explicit dimensions for edge calculations
       width: 192, // 48 * 4 (w-48 in Tailwind)
       height: 128, // Approximate height of the node
+      zIndex: 10, // Nodes above edges
     }));
   }, [layoutNodes, selectedMemberId, handleNodeClick]);
 
@@ -94,6 +95,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
           stroke: edge.type === 'parent' ? '#3b82f6' : '#10b981',
           strokeWidth: edge.type === 'parent' ? 2 : 3,
         },
+        zIndex: 0, // Edges behind nodes
       };
 
       if (edge.type === 'parent') {

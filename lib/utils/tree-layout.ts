@@ -16,8 +16,8 @@ export interface LayoutConfig {
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   nodeWidth: 200,
   nodeHeight: 120,
-  horizontalGap: 100,
-  verticalGap: 150,
+  horizontalGap: 150,  // Increased from 100 to prevent edge overlap
+  verticalGap: 200,    // Increased from 150 to prevent edge overlap
 };
 
 /**

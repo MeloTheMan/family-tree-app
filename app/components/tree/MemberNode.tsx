@@ -23,15 +23,35 @@ function MemberNode({ data }: MemberNodeProps) {
       onClick={onClick}
       className={`
         w-40 sm:w-48 rounded-lg border-2 bg-white shadow-md transition-all duration-200 cursor-pointer
-        hover:shadow-xl hover:scale-105 active:scale-95
+        hover:shadow-xl hover:scale-105 active:scale-95 relative z-10
         ${isSelected ? 'border-blue-500 ring-2 ring-blue-300 shadow-lg' : 'border-gray-300'}
       `}
     >
-      {/* Connection handles for edges */}
-      <Handle type="target" position={Position.Top} className="!bg-blue-500 !w-2 !h-2" />
-      <Handle type="source" position={Position.Bottom} className="!bg-blue-500 !w-2 !h-2" />
-      <Handle type="source" position={Position.Left} className="!bg-green-500 !w-2 !h-2" />
-      <Handle type="source" position={Position.Right} className="!bg-green-500 !w-2 !h-2" />
+      {/* Connection handles for edges - positioned outside the node border */}
+      <Handle 
+        type="target" 
+        position={Position.Top} 
+        className="!bg-blue-500 !w-3 !h-3 !-top-1.5 !border-2 !border-white" 
+        style={{ zIndex: 1 }}
+      />
+      <Handle 
+        type="source" 
+        position={Position.Bottom} 
+        className="!bg-blue-500 !w-3 !h-3 !-bottom-1.5 !border-2 !border-white" 
+        style={{ zIndex: 1 }}
+      />
+      <Handle 
+        type="source" 
+        position={Position.Left} 
+        className="!bg-green-500 !w-3 !h-3 !-left-1.5 !border-2 !border-white" 
+        style={{ zIndex: 1 }}
+      />
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        className="!bg-green-500 !w-3 !h-3 !-right-1.5 !border-2 !border-white" 
+        style={{ zIndex: 1 }}
+      />
       
       {/* Photo Section */}
       <div className="relative h-24 sm:h-32 w-full overflow-hidden rounded-t-lg bg-gray-100">
