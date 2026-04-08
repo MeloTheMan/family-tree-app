@@ -85,20 +85,25 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
   // Convert TreeEdge to ReactFlow Edge format with different styles - memoized
   const edges: Edge[] = useMemo(() => {
     const reactFlowEdges = layoutEdges.map((edge): Edge => {
+      const isSpouseEdge = edge.type === 'spouse';
+      const isParentEdge = edge.type === 'parent';
+      
       const baseEdge: Edge = {
         id: edge.id,
         source: edge.source,
         target: edge.target,
-        type: edge.type === 'parent' ? 'smoothstep' : 'straight',
+        type: isParentEdge ? 'smoothstep' : 'straight',
         animated: false,
         style: {
-          stroke: edge.type === 'parent' ? '#3b82f6' : '#10b981',
-          strokeWidth: edge.type === 'parent' ? 2 : 3,
+          stroke: isParentEdge ? '#3b82f6' : '#10b981',
+          strokeWidth: isParentEdge ? 2.5 : 3.5,
+          strokeDasharray: isSpouseEdge ? '5,5' : undefined, // Dashed line for spouses
         },
-        zIndex: 0, // Edges behind nodes
+        // Spouse edges have higher z-index to appear above parent edges
+        zIndex: isSpouseEdge ? 2 : 1,
       };
 
-      if (edge.type === 'parent') {
+      if (isParentEdge) {
         baseEdge.markerEnd = {
           type: 'arrowclosed' as const,
           color: '#3b82f6',
