@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, memo } from 'react';
+import { useState, useCallback, useMemo, memo, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -10,6 +10,7 @@ import {
   NodeTypes,
   ReactFlowProvider,
   useNodesInitialized,
+  useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -33,6 +34,17 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const nodesInitialized = useNodesInitialized();
+  const { fitView } = useReactFlow();
+
+  // Force fitView when nodes are initialized
+  useEffect(() => {
+    if (nodesInitialized) {
+      console.log('Nodes initialized! Fitting view...');
+      setTimeout(() => {
+        fitView({ padding: 0.2, duration: 800 });
+      }, 100);
+    }
+  }, [nodesInitialized, fitView]);
 
   // Calculate tree layout - memoized to prevent recalculation
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(() => {
@@ -41,11 +53,10 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       nodesCount: result.nodes.length,
       edgesCount: result.edges.length,
       edges: result.edges,
-      relationships: initialRelationships,
-      nodesInitialized
+      relationships: initialRelationships
     });
     return result;
-  }, [initialMembers, initialRelationships, nodesInitialized]);
+  }, [initialMembers, initialRelationships]);
 
   // Handle node click to show detail panel
   const handleNodeClick = useCallback((memberId: string) => {
@@ -158,7 +169,6 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        fitView
         fitViewOptions={{
           padding: 0.2,
           minZoom: 0.1,
