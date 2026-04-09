@@ -82,15 +82,19 @@ export async function POST(request: NextRequest) {
 
     // Extract form fields
     const name = formData.get('name') as string;
+    const last_name = formData.get('last_name') as string;
     const birth_date = formData.get('birth_date') as string | null;
     const birthplace = formData.get('birthplace') as string | null;
+    const work = formData.get('work') as string | null;
     const photo = formData.get('photo') as File | null;
 
     // Validate member data
     const validationResult = MemberCreateSchema.safeParse({
       name,
+      last_name,
       birth_date: birth_date || null,
       birthplace: birthplace || null,
+      work: work || null,
     });
 
     if (!validationResult.success) {
@@ -180,8 +184,10 @@ export async function POST(request: NextRequest) {
       .from('members')
       .insert({
         name: validationResult.data.name,
+        last_name: validationResult.data.last_name,
         birth_date: validationResult.data.birth_date || null,
         birthplace: validationResult.data.birthplace || null,
+        work: validationResult.data.work || null,
         photo_url,
       })
       .select()

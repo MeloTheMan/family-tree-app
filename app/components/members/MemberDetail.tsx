@@ -109,7 +109,8 @@ export default function MemberDetail({ member, onEdit, onClose }: MemberDetailPr
 
             {/* Basic information */}
             <div className="flex-1 animate-slideInRight">
-              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">{member.name}</h3>
+              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{member.name}</h3>
+              <p className="text-xl sm:text-2xl text-gray-700 mb-4">{member.last_name}</p>
               
               <div className="space-y-3">
                 <div className="transition-all duration-200 hover:translate-x-1">
@@ -117,9 +118,21 @@ export default function MemberDetail({ member, onEdit, onClose }: MemberDetailPr
                   <p className="text-base sm:text-lg text-gray-900">{formatDate(member.birth_date)}</p>
                 </div>
                 
+                {member.age !== null && (
+                  <div className="transition-all duration-200 hover:translate-x-1">
+                    <span className="text-sm font-medium text-gray-500">Âge</span>
+                    <p className="text-base sm:text-lg text-gray-900">{member.age} ans</p>
+                  </div>
+                )}
+                
                 <div className="transition-all duration-200 hover:translate-x-1">
                   <span className="text-sm font-medium text-gray-500">Lieu de naissance</span>
                   <p className="text-base sm:text-lg text-gray-900">{member.birthplace || 'Non spécifié'}</p>
+                </div>
+                
+                <div className="transition-all duration-200 hover:translate-x-1">
+                  <span className="text-sm font-medium text-gray-500">Profession</span>
+                  <p className="text-base sm:text-lg text-gray-900">{member.work || 'Non spécifié'}</p>
                 </div>
               </div>
 

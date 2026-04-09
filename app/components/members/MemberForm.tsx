@@ -14,8 +14,10 @@ interface MemberFormProps {
 
 interface FormErrors {
   name?: string;
+  last_name?: string;
   birth_date?: string;
   birthplace?: string;
+  work?: string;
   photo?: string;
 }
 
@@ -24,8 +26,10 @@ export default function MemberForm({ member, onSubmit, onCancel }: MemberFormPro
   
   const [formData, setFormData] = useState<MemberFormData>({
     name: member?.name || '',
+    last_name: member?.last_name || null,
     birth_date: member?.birth_date || null,
     birthplace: member?.birthplace || null,
+    work: member?.work || null,
     photo: undefined,
   });
   
@@ -37,8 +41,10 @@ export default function MemberForm({ member, onSubmit, onCancel }: MemberFormPro
     if (member) {
       setFormData({
         name: member.name,
+        last_name: member.last_name,
         birth_date: member.birth_date,
         birthplace: member.birthplace,
+        work: member.work,
         photo: undefined,
       });
     }
@@ -118,7 +124,7 @@ export default function MemberForm({ member, onSubmit, onCancel }: MemberFormPro
         {/* Name field */}
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-            Nom <span className="text-red-500">*</span>
+            Nom(s) de famille <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -133,12 +139,40 @@ export default function MemberForm({ member, onSubmit, onCancel }: MemberFormPro
               }
               px-3 py-2 border
             `}
-            placeholder="Entrez le nom complet"
+            placeholder="Ex: KENME MOMO"
             disabled={isSubmitting}
           />
           {errors.name && (
             <p className="mt-1 text-sm text-red-600">
               {errors.name}
+            </p>
+          )}
+        </div>
+
+        {/* Last name field */}
+        <div>
+          <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
+            Prénom(s) <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="last_name"
+            value={formData.last_name || ''}
+            onChange={(e) => handleInputChange('last_name', e.target.value)}
+            className={`
+              mt-1 block w-full rounded-md shadow-sm
+              ${errors.last_name 
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+              }
+              px-3 py-2 border
+            `}
+            placeholder="Ex: Jean Paul"
+            disabled={isSubmitting}
+          />
+          {errors.last_name && (
+            <p className="mt-1 text-sm text-red-600">
+              {errors.last_name}
             </p>
           )}
         </div>
@@ -194,6 +228,34 @@ export default function MemberForm({ member, onSubmit, onCancel }: MemberFormPro
           {errors.birthplace && (
             <p className="mt-1 text-sm text-red-600">
               {errors.birthplace}
+            </p>
+          )}
+        </div>
+
+        {/* Work field */}
+        <div>
+          <label htmlFor="work" className="block text-sm font-medium text-gray-700">
+            Profession
+          </label>
+          <input
+            type="text"
+            id="work"
+            value={formData.work || ''}
+            onChange={(e) => handleInputChange('work', e.target.value)}
+            className={`
+              mt-1 block w-full rounded-md shadow-sm
+              ${errors.work 
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+              }
+              px-3 py-2 border
+            `}
+            placeholder="Ex: Ingénieur, Médecin, Enseignant..."
+            disabled={isSubmitting}
+          />
+          {errors.work && (
+            <p className="mt-1 text-sm text-red-600">
+              {errors.work}
             </p>
           )}
         </div>

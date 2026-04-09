@@ -52,26 +52,36 @@ export async function PUT(
 
     // Extract form fields
     const name = formData.get('name') as string | null;
+    const last_name = formData.get('last_name') as string | null;
     const birth_date = formData.get('birth_date') as string | null;
     const birthplace = formData.get('birthplace') as string | null;
+    const work = formData.get('work') as string | null;
     const photo = formData.get('photo') as File | null;
 
     // Build update object with only provided fields
     const updateData: Partial<{
       name: string;
+      last_name: string;
       birth_date: string | null;
       birthplace: string | null;
+      work: string | null;
       photo_url: string | null;
     }> = {};
 
     if (name !== null) {
       updateData.name = name;
     }
+    if (last_name !== null) {
+      updateData.last_name = last_name;
+    }
     if (birth_date !== null) {
       updateData.birth_date = birth_date || null;
     }
     if (birthplace !== null) {
       updateData.birthplace = birthplace || null;
+    }
+    if (work !== null) {
+      updateData.work = work || null;
     }
 
     // Validate update data

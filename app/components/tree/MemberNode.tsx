@@ -102,6 +102,9 @@ function MemberNode({ data }: MemberNodeProps) {
         <h3 className="text-center font-semibold text-gray-900 truncate text-sm sm:text-base transition-colors duration-200">
           {memberData.name}
         </h3>
+        <p className="text-center text-xs text-gray-600 truncate transition-colors duration-200">
+          {memberData.last_name}
+        </p>
         {memberData.birth_date && (
           <p className="text-center text-xs text-gray-500 mt-1 transition-colors duration-200">
             {new Date(memberData.birth_date).getFullYear()}

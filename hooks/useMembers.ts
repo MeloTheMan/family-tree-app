@@ -51,12 +51,20 @@ export function useMembers(): UseMembersReturn {
       const formData = new FormData();
       formData.append('name', data.name);
       
+      if (data.last_name) {
+        formData.append('last_name', data.last_name);
+      }
+      
       if (data.birth_date) {
         formData.append('birth_date', data.birth_date);
       }
       
       if (data.birthplace) {
         formData.append('birthplace', data.birthplace);
+      }
+      
+      if (data.work) {
+        formData.append('work', data.work);
       }
       
       if (data.photo) {
@@ -97,12 +105,20 @@ export function useMembers(): UseMembersReturn {
       const formData = new FormData();
       formData.append('name', data.name);
       
+      if (data.last_name) {
+        formData.append('last_name', data.last_name);
+      }
+      
       if (data.birth_date) {
         formData.append('birth_date', data.birth_date);
       }
       
       if (data.birthplace) {
         formData.append('birthplace', data.birthplace);
+      }
+      
+      if (data.work) {
+        formData.append('work', data.work);
       }
       
       if (data.photo) {
