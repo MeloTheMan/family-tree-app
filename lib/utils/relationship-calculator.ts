@@ -124,21 +124,21 @@ function getDirectRelationship(
     relationships: Relationship[],
     members: Member[]
 ): string {
-    const targetMember = members.find(m => m.id === toId);
+    // INVERTED LOGIC: Show what the selected member (toId) is to the current user (fromId)
 
-    // Check if it's a parent
+    // If current user is parent of selected → selected is child
     const isParent = relationships.some(
         r => r.member_id === fromId && r.related_member_id === toId && r.relationship_type === 'parent'
     );
-    if (isParent) return 'Parent';
+    if (isParent) return 'Enfant';
 
-    // Check if it's a child
+    // If current user is child of selected → selected is parent
     const isChild = relationships.some(
         r => r.member_id === fromId && r.related_member_id === toId && r.relationship_type === 'child'
     );
-    if (isChild) return 'Enfant';
+    if (isChild) return 'Parent';
 
-    // Check if it's a spouse
+    // Spouse is symmetric
     const isSpouse = relationships.some(
         r => r.member_id === fromId && r.related_member_id === toId && r.relationship_type === 'spouse'
     );
@@ -215,7 +215,7 @@ function analyzeComplexRelationship(
         generationsDown = 0;
     }
 
-    // Determine relationship
+    // Determine relationship (INVERTED LOGIC)
     if (isSibling) {
         if (hasSpouse) {
             return 'Beau-frère/Belle-sœur';
@@ -232,7 +232,7 @@ function analyzeComplexRelationship(
         return 'Cousin(e) éloigné(e)';
     }
 
-    // Ascending relationships (ancestors)
+    // INVERTED: generationsUp means going towards ancestors, so selected is ancestor
     if (generationsUp > 0 && generationsDown === 0) {
         if (hasSpouse) {
             if (generationsUp === 1) return 'Beau-parent';
@@ -247,7 +247,7 @@ function analyzeComplexRelationship(
         return `Ancêtre (${generationsUp}ème génération)`;
     }
 
-    // Descending relationships (descendants)
+    // INVERTED: generationsDown means going towards descendants, so selected is descendant
     if (generationsDown > 0 && generationsUp === 0) {
         if (hasSpouse) {
             if (generationsDown === 1) return 'Gendre/Belle-fille';
@@ -263,6 +263,7 @@ function analyzeComplexRelationship(
     }
 
     // Collateral relationships (aunts, uncles, nieces, nephews)
+    // INVERTED: up 1 + down 1 = selected is uncle/aunt
     if (generationsUp === 1 && generationsDown === 1) {
         if (hasSpouse) return 'Oncle/Tante par alliance';
         return 'Oncle/Tante';
@@ -272,6 +273,7 @@ function analyzeComplexRelationship(
         return 'Grand-oncle/Grand-tante';
     }
 
+    // INVERTED: down 1 + up 1 = selected is nephew/niece
     if (generationsDown === 1 && generationsUp === 1) {
         if (hasSpouse) return 'Neveu/Nièce par alliance';
         return 'Neveu/Nièce';
