@@ -45,10 +45,9 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       success: true,
       data: {
-        id: user.id,
-        username: user.username,
-        user_type: user.user_type,
-        member_id: user.member_id,
+        userId: user.id,
+        userType: user.user_type,
+        memberId: user.member_id,
       },
     });
 
