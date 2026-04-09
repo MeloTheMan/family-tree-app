@@ -31,6 +31,13 @@ export interface TreeNode {
   type: 'member';
 }
 
+export interface MemberPosition {
+  member_id: string;
+  position_x: number;
+  position_y: number;
+  updated_at: string;
+}
+
 export interface TreeEdge {
   id: string;
   source: string;

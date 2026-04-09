@@ -16,6 +16,7 @@ import '@xyflow/react/dist/style.css';
 
 import { Member, Relationship, MemberWithRelationships } from '@/lib/types';
 import { calculateTreeLayout } from '@/lib/utils/tree-layout';
+import { usePositions } from '@/hooks/usePositions';
 import MemberNode from './MemberNode';
 import TreeControls from './TreeControls';
 import MemberDetail from '../members/MemberDetail';
@@ -36,6 +37,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
   const [nodes, setNodes] = useState<Node[]>([]);
   const nodesInitialized = useNodesInitialized();
   const { fitView } = useReactFlow();
+  const { positions, savePositions } = usePositions();
 
   // Force fitView when nodes are initialized
   useEffect(() => {
@@ -67,20 +69,11 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
 
   // Convert TreeNode to ReactFlow Node format - memoized
   const initialNodes: Node[] = useMemo(() => {
-    // Load saved positions from localStorage
-    const savedPositions = typeof window !== 'undefined' 
-      ? localStorage.getItem('family-tree-positions')
-      : null;
-    
-    const positionsMap = savedPositions 
-      ? JSON.parse(savedPositions) 
-      : {};
-
     return layoutNodes.map((node) => ({
       id: node.id,
       type: 'member',
-      // Use saved position if available, otherwise use calculated position
-      position: positionsMap[node.id] || node.position,
+      // Use saved position from database if available, otherwise use calculated position
+      position: positions.get(node.id) || node.position,
       data: {
         ...node.data,
         isSelected: node.id === selectedMemberId,
@@ -92,45 +85,14 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       zIndex: 10, // Nodes above edges
       draggable: true, // Enable dragging
     }));
-  }, [layoutNodes, selectedMemberId, handleNodeClick]);
+  }, [layoutNodes, selectedMemberId, handleNodeClick, positions]);
 
   // Update nodes when layout changes or selection changes
   useEffect(() => {
     setNodes(initialNodes);
   }, [initialNodes]);
 
-  // Handle reset layout to default positions
-  const handleResetLayout = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('family-tree-positions');
-      console.log('Cleared saved positions from localStorage');
-      
-      // Reset nodes to default calculated positions
-      const defaultNodes = layoutNodes.map((node) => ({
-        id: node.id,
-        type: 'member',
-        position: node.position,
-        data: {
-          ...node.data,
-          isSelected: node.id === selectedMemberId,
-          onClick: () => handleNodeClick(node.id),
-        },
-        width: 192,
-        height: 128,
-        zIndex: 10,
-        draggable: true,
-      }));
-      
-      setNodes(defaultNodes);
-      
-      // Fit view after reset
-      setTimeout(() => {
-        fitView({ padding: 0.2, duration: 800 });
-      }, 100);
-    }
-  }, [layoutNodes, selectedMemberId, handleNodeClick, fitView]);
-
-  // Handle node drag - update node positions and save to localStorage
+  // Handle node drag - update node positions and save to database
   const onNodesChange = useCallback((changes: any) => {
     setNodes((nds) => {
       const updatedNodes = [...nds];
@@ -149,22 +111,22 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
         }
       });
 
-      // Save positions to localStorage when dragging ends
+      // Save positions to database when dragging ends
       if (positionsChanged && changes.some((c: any) => c.dragging === false)) {
-        const positionsMap: Record<string, { x: number; y: number }> = {};
+        const positionsMap = new Map<string, { x: number; y: number }>();
         updatedNodes.forEach(node => {
-          positionsMap[node.id] = node.position;
+          positionsMap.set(node.id, node.position);
         });
         
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('family-tree-positions', JSON.stringify(positionsMap));
-          console.log('Saved node positions to localStorage');
-        }
+        // Save to database asynchronously
+        savePositions(positionsMap).catch(err => {
+          console.error('Failed to save positions:', err);
+        });
       }
 
       return updatedNodes;
     });
-  }, []);
+  }, [savePositions]);
 
   // Convert TreeEdge to ReactFlow Edge format with different styles - memoized
   const edges: Edge[] = useMemo(() => {
@@ -287,7 +249,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
           size={1} 
           className="opacity-50" 
         />
-        <TreeControls onResetLayout={handleResetLayout} />
+        <TreeControls />
       </ReactFlow>
 
       {/* Member Detail Panel */}
