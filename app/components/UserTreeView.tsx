@@ -9,9 +9,10 @@ import type { Member, MemberWithRelationships } from '@/lib/types';
 
 interface UserTreeViewProps {
   onLogout: () => void;
+  currentUserMemberId: string | null;
 }
 
-export default function UserTreeView({ onLogout }: UserTreeViewProps) {
+export default function UserTreeView({ onLogout, currentUserMemberId }: UserTreeViewProps) {
   const { members, relationships, loading, error, fetchMembers } = useMembers();
   const [selectedMember, setSelectedMember] = useState<MemberWithRelationships | null>(null);
 
@@ -112,6 +113,9 @@ export default function UserTreeView({ onLogout }: UserTreeViewProps) {
           onEdit={() => {}}
           onClose={() => setSelectedMember(null)}
           readOnly={true}
+          currentUserMemberId={currentUserMemberId}
+          allMembers={members}
+          allRelationships={relationships}
         />
       )}
     </div>

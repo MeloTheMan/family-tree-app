@@ -1,19 +1,36 @@
 'use client';
 
-import { MemberWithRelationships } from '@/lib/types';
+import { MemberWithRelationships, Member, Relationship } from '@/lib/types';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
+import { calculateRelationship } from '@/lib/utils/relationship-calculator';
 
 interface MemberDetailProps {
   member: MemberWithRelationships;
   onEdit: () => void;
   onClose: () => void;
   readOnly?: boolean;
+  currentUserMemberId?: string | null;
+  allMembers?: Member[];
+  allRelationships?: Relationship[];
 }
 
-export default function MemberDetail({ member, onEdit, onClose, readOnly = false }: MemberDetailProps) {
+export default function MemberDetail({ 
+  member, 
+  onEdit, 
+  onClose, 
+  readOnly = false,
+  currentUserMemberId,
+  allMembers = [],
+  allRelationships = []
+}: MemberDetailProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [imageLoading, setImageLoading] = useState(true);
+
+  // Calculate relationship if user is viewing
+  const relationshipLabel = currentUserMemberId && allMembers.length > 0 && allRelationships.length > 0
+    ? calculateRelationship(currentUserMemberId, member.id, allMembers, allRelationships)
+    : null;
 
   // Handle click outside to close
   useEffect(() => {
@@ -155,123 +172,141 @@ export default function MemberDetail({ member, onEdit, onClose, readOnly = false
           <div className="border-t border-gray-200 pt-6">
             <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Relations familiales</h4>
             
-            <div className="space-y-4">
-              {/* Parents */}
-              {member.parents.length > 0 && (
-                <div className="animate-slideInRight" style={{ animationDelay: '0.1s' }}>
-                  <h5 className="text-sm font-medium text-gray-500 mb-2">
-                    Parents ({member.parents.length})
-                  </h5>
-                  <ul className="space-y-2">
-                    {member.parents.map((parent, index) => (
-                      <li 
-                        key={parent.id} 
-                        className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1"
-                        style={{ animationDelay: `${0.1 + index * 0.05}s` }}
-                      >
-                        {parent.photo_url ? (
-                          <Image
-                            src={parent.photo_url}
-                            alt={parent.name}
-                            width={40}
-                            height={40}
-                            className="rounded-full object-cover w-10 h-10"
-                            loading="lazy"
-                            quality={70}
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                            <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        )}
-                        <span className="text-gray-900 font-medium">{parent.name}</span>
-                      </li>
-                    ))}
-                  </ul>
+            {relationshipLabel ? (
+              // For users: show calculated relationship
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 animate-fadeIn">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">Lien de parenté</p>
+                    <p className="text-xl font-bold text-blue-700">{relationshipLabel}</p>
+                  </div>
                 </div>
-              )}
+              </div>
+            ) : (
+              // For admin: show detailed relationships list
+              <div className="space-y-4">
+                {/* Parents */}
+                {member.parents.length > 0 && (
+                  <div className="animate-slideInRight" style={{ animationDelay: '0.1s' }}>
+                    <h5 className="text-sm font-medium text-gray-500 mb-2">
+                      Parents ({member.parents.length})
+                    </h5>
+                    <ul className="space-y-2">
+                      {member.parents.map((parent, index) => (
+                        <li 
+                          key={parent.id} 
+                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1"
+                          style={{ animationDelay: `${0.1 + index * 0.05}s` }}
+                        >
+                          {parent.photo_url ? (
+                            <Image
+                              src={parent.photo_url}
+                              alt={parent.name}
+                              width={40}
+                              height={40}
+                              className="rounded-full object-cover w-10 h-10"
+                              loading="lazy"
+                              quality={70}
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                              <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                          <span className="text-gray-900 font-medium">{parent.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-              {/* Children */}
-              {member.children.length > 0 && (
-                <div className="animate-slideInRight" style={{ animationDelay: '0.2s' }}>
-                  <h5 className="text-sm font-medium text-gray-500 mb-2">
-                    Enfants ({member.children.length})
-                  </h5>
-                  <ul className="space-y-2">
-                    {member.children.map((child, index) => (
-                      <li 
-                        key={child.id} 
-                        className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1"
-                        style={{ animationDelay: `${0.2 + index * 0.05}s` }}
-                      >
-                        {child.photo_url ? (
-                          <Image
-                            src={child.photo_url}
-                            alt={child.name}
-                            width={40}
-                            height={40}
-                            className="rounded-full object-cover w-10 h-10"
-                            loading="lazy"
-                            quality={70}
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                            <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        )}
-                        <span className="text-gray-900 font-medium">{child.name}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                {/* Children */}
+                {member.children.length > 0 && (
+                  <div className="animate-slideInRight" style={{ animationDelay: '0.2s' }}>
+                    <h5 className="text-sm font-medium text-gray-500 mb-2">
+                      Enfants ({member.children.length})
+                    </h5>
+                    <ul className="space-y-2">
+                      {member.children.map((child, index) => (
+                        <li 
+                          key={child.id} 
+                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1"
+                          style={{ animationDelay: `${0.2 + index * 0.05}s` }}
+                        >
+                          {child.photo_url ? (
+                            <Image
+                              src={child.photo_url}
+                              alt={child.name}
+                              width={40}
+                              height={40}
+                              className="rounded-full object-cover w-10 h-10"
+                              loading="lazy"
+                              quality={70}
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                              <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                          <span className="text-gray-900 font-medium">{child.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-              {/* Spouses */}
-              {member.spouses.length > 0 && (
-                <div className="animate-slideInRight" style={{ animationDelay: '0.3s' }}>
-                  <h5 className="text-sm font-medium text-gray-500 mb-2">
-                    Conjoints ({member.spouses.length})
-                  </h5>
-                  <ul className="space-y-2">
-                    {member.spouses.map((spouse, index) => (
-                      <li 
-                        key={spouse.id} 
-                        className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1"
-                        style={{ animationDelay: `${0.3 + index * 0.05}s` }}
-                      >
-                        {spouse.photo_url ? (
-                          <Image
-                            src={spouse.photo_url}
-                            alt={spouse.name}
-                            width={40}
-                            height={40}
-                            className="rounded-full object-cover w-10 h-10"
-                            loading="lazy"
-                            quality={70}
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                            <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        )}
-                        <span className="text-gray-900 font-medium">{spouse.name}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                {/* Spouses */}
+                {member.spouses.length > 0 && (
+                  <div className="animate-slideInRight" style={{ animationDelay: '0.3s' }}>
+                    <h5 className="text-sm font-medium text-gray-500 mb-2">
+                      Conjoints ({member.spouses.length})
+                    </h5>
+                    <ul className="space-y-2">
+                      {member.spouses.map((spouse, index) => (
+                        <li 
+                          key={spouse.id} 
+                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1"
+                          style={{ animationDelay: `${0.3 + index * 0.05}s` }}
+                        >
+                          {spouse.photo_url ? (
+                            <Image
+                              src={spouse.photo_url}
+                              alt={spouse.name}
+                              width={40}
+                              height={40}
+                              className="rounded-full object-cover w-10 h-10"
+                              loading="lazy"
+                              quality={70}
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                              <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                          <span className="text-gray-900 font-medium">{spouse.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-              {/* No relationships message */}
-              {member.parents.length === 0 && member.children.length === 0 && member.spouses.length === 0 && (
-                <p className="text-gray-500 text-center py-4 animate-fadeIn">Aucune relation familiale enregistrée</p>
-              )}
-            </div>
+                {/* No relationships message */}
+                {member.parents.length === 0 && member.children.length === 0 && member.spouses.length === 0 && (
+                  <p className="text-gray-500 text-center py-4 animate-fadeIn">Aucune relation familiale enregistrée</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

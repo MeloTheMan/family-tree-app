@@ -28,5 +28,5 @@ export default function Home() {
   }
 
   console.log('Home - Rendering UserTreeView');
-  return <UserTreeView onLogout={logout} />;
+  return <UserTreeView onLogout={logout} currentUserMemberId={session.memberId} />;
 }
