@@ -136,7 +136,7 @@ export default function RelationshipForm({
             <option value="">Sélectionnez un membre</option>
             {members.map((member) => (
               <option key={member.id} value={member.id}>
-                {member.name}
+                {member.name} {member.last_name}
               </option>
             ))}
           </select>
@@ -227,7 +227,7 @@ export default function RelationshipForm({
               .filter(member => member.id !== formData.member_id)
               .map((member) => (
                 <option key={member.id} value={member.id}>
-                  {member.name}
+                  {member.name} {member.last_name}
                 </option>
               ))}
           </select>
