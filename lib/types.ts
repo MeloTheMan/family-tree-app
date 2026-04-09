@@ -78,6 +78,17 @@ export interface User {
   updated_at: string;
 }
 
+export interface Session {
+  userId: string;
+  userType: 'admin' | 'user';
+  memberId: string | null;
+}
+
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
 // Form data types
 export interface MemberFormData {
   name: string;

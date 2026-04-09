@@ -22,16 +22,27 @@ import TreeControls from './TreeControls';
 import MemberDetail from '../members/MemberDetail';
 
 interface FamilyTreeProps {
-  initialMembers: Member[];
-  initialRelationships: Relationship[];
+  initialMembers?: Member[];
+  initialRelationships?: Relationship[];
+  members?: Member[];
+  relationships?: Relationship[];
   onEditMember?: (member: Member) => void;
+  onMemberClick?: (memberId: string) => void;
+  readOnly?: boolean;
 }
 
 const FamilyTreeContent = memo(function FamilyTreeContent({ 
   initialMembers, 
-  initialRelationships, 
-  onEditMember 
+  initialRelationships,
+  members,
+  relationships,
+  onEditMember,
+  onMemberClick,
+  readOnly = false,
 }: FamilyTreeProps) {
+  const actualMembers = members || initialMembers || [];
+  const actualRelationships = relationships || initialRelationships || [];
+  
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -51,21 +62,25 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
 
   // Calculate tree layout - memoized to prevent recalculation
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(() => {
-    const result = calculateTreeLayout(initialMembers, initialRelationships);
+    const result = calculateTreeLayout(actualMembers, actualRelationships);
     console.log('Tree layout calculated:', {
       nodesCount: result.nodes.length,
       edgesCount: result.edges.length,
       edges: result.edges,
-      relationships: initialRelationships
+      relationships: actualRelationships
     });
     return result;
-  }, [initialMembers, initialRelationships]);
+  }, [actualMembers, actualRelationships]);
 
   // Handle node click to show detail panel
   const handleNodeClick = useCallback((memberId: string) => {
-    setSelectedMemberId(memberId);
-    setShowDetail(true);
-  }, []);
+    if (onMemberClick) {
+      onMemberClick(memberId);
+    } else {
+      setSelectedMemberId(memberId);
+      setShowDetail(true);
+    }
+  }, [onMemberClick]);
 
   // Convert TreeNode to ReactFlow Node format - memoized
   const initialNodes: Node[] = useMemo(() => {
@@ -83,9 +98,9 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       width: 192, // 48 * 4 (w-48 in Tailwind)
       height: 128, // Approximate height of the node
       zIndex: 10, // Nodes above edges
-      draggable: true, // Enable dragging
+      draggable: !readOnly, // Enable dragging only if not read-only
     }));
-  }, [layoutNodes, selectedMemberId, handleNodeClick, positions]);
+  }, [layoutNodes, selectedMemberId, handleNodeClick, positions, readOnly]);
 
   // Update nodes when layout changes or selection changes
   useEffect(() => {
@@ -171,7 +186,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
   const selectedMemberWithRelationships = useMemo((): MemberWithRelationships | null => {
     if (!selectedMemberId) return null;
 
-    const member = initialMembers.find(m => m.id === selectedMemberId);
+    const member = actualMembers.find(m => m.id === selectedMemberId);
     if (!member) return null;
 
     // Build relationships for this member
@@ -179,9 +194,9 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
     const children: Member[] = [];
     const spouses: Member[] = [];
 
-    initialRelationships.forEach(rel => {
+    actualRelationships.forEach(rel => {
       if (rel.member_id === selectedMemberId) {
-        const relatedMember = initialMembers.find(m => m.id === rel.related_member_id);
+        const relatedMember = actualMembers.find(m => m.id === rel.related_member_id);
         if (relatedMember) {
           if (rel.relationship_type === 'child') {
             parents.push(relatedMember);
@@ -200,7 +215,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       children,
       spouses,
     };
-  }, [selectedMemberId, initialMembers, initialRelationships]);
+  }, [selectedMemberId, actualMembers, actualRelationships]);
 
   // Handle close detail panel
   const handleCloseDetail = useCallback(() => {
@@ -237,7 +252,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
         zoomOnScroll={true}
         zoomOnPinch={true}
         zoomOnDoubleClick={false}
-        nodesDraggable={true}
+        nodesDraggable={!readOnly}
         nodesConnectable={false}
         elementsSelectable={true}
         className="transition-all duration-300"
@@ -253,11 +268,12 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       </ReactFlow>
 
       {/* Member Detail Panel */}
-      {showDetail && selectedMemberWithRelationships && (
+      {showDetail && selectedMemberWithRelationships && !onMemberClick && (
         <MemberDetail
           member={selectedMemberWithRelationships}
           onEdit={handleEditMember}
           onClose={handleCloseDetail}
+          readOnly={readOnly}
         />
       )}
     </div>

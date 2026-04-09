@@ -1,25 +1,25 @@
-import { createClient } from '@/lib/supabase/server';
+'use client';
+
+import { useAuth } from '@/hooks/useAuth';
+import LoginForm from './components/auth/LoginForm';
 import FamilyTreeApp from './components/FamilyTreeApp';
-import type { Member, Relationship } from '@/lib/types';
+import UserTreeView from './components/UserTreeView';
+import { TreeLoadingSkeleton } from './components/LoadingSkeleton';
 
-export default async function Home() {
-  const supabase = await createClient();
+export default function Home() {
+  const { session, loading, error, login, logout } = useAuth();
 
-  // Fetch initial members and relationships server-side
-  const { data: members } = await supabase
-    .from('members')
-    .select('*')
-    .order('created_at', { ascending: true });
+  if (loading) {
+    return <TreeLoadingSkeleton />;
+  }
 
-  const { data: relationships } = await supabase
-    .from('relationships')
-    .select('*')
-    .order('created_at', { ascending: true });
+  if (!session) {
+    return <LoginForm onLogin={login} error={error} loading={loading} />;
+  }
 
-  return (
-    <FamilyTreeApp
-      initialMembers={(members as Member[]) || []}
-      initialRelationships={(relationships as Relationship[]) || []}
-    />
-  );
+  if (session.userType === 'admin') {
+    return <FamilyTreeApp onLogout={logout} />;
+  }
+
+  return <UserTreeView onLogout={logout} />;
 }

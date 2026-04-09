@@ -11,13 +11,12 @@ import RelationshipForm from './relationships/RelationshipForm';
 import { TreeLoadingSkeleton, EmptyState } from './LoadingSkeleton';
 
 interface FamilyTreeAppProps {
-  initialMembers: Member[];
-  initialRelationships: Relationship[];
+  onLogout: () => void;
 }
 
 type ModalType = 'member' | 'relationship' | 'edit' | null;
 
-export default function FamilyTreeApp({ initialMembers, initialRelationships }: FamilyTreeAppProps) {
+export default function FamilyTreeApp({ onLogout }: FamilyTreeAppProps) {
   const { members, relationships, loading, error, fetchMembers, createMember, updateMember } = useMembers();
   const { createRelationship, error: relationshipError } = useRelationships({
     onSuccess: () => {
@@ -30,13 +29,10 @@ export default function FamilyTreeApp({ initialMembers, initialRelationships }: 
   const [modalType, setModalType] = useState<ModalType>(null);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
 
-  // Initialize with server-fetched data
+  // Fetch members on mount
   useEffect(() => {
-    if (initialMembers.length > 0 || initialRelationships.length > 0) {
-      // Use initial data on first render
-      fetchMembers();
-    }
-  }, []);
+    fetchMembers();
+  }, [fetchMembers]);
 
   // Show error notifications
   useEffect(() => {
@@ -130,14 +126,15 @@ export default function FamilyTreeApp({ initialMembers, initialRelationships }: 
     setEditingMember(null);
   };
 
-  const displayMembers = members.length > 0 ? members : initialMembers;
-  const displayRelationships = relationships.length > 0 ? relationships : initialRelationships;
+  if (loading && members.length === 0) {
+    return <TreeLoadingSkeleton />;
+  }
 
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Arbre Généalogique</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Arbre Généalogique - Administration</h1>
         <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={() => setModalType('member')}
@@ -149,24 +146,28 @@ export default function FamilyTreeApp({ initialMembers, initialRelationships }: 
           <button
             onClick={() => setModalType('relationship')}
             className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-            disabled={displayMembers.length < 2}
+            disabled={members.length < 2}
           >
             <span className="hidden sm:inline">+ Ajouter une relation</span>
             <span className="sm:hidden">+ Relation</span>
+          </button>
+          <button
+            onClick={onLogout}
+            className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
+          >
+            Déconnexion
           </button>
         </div>
       </header>
 
       {/* Main content - Family Tree */}
       <div className="flex-1 relative bg-gray-50">
-        {loading && displayMembers.length === 0 ? (
-          <TreeLoadingSkeleton />
-        ) : displayMembers.length === 0 ? (
+        {members.length === 0 ? (
           <EmptyState onAddMember={() => setModalType('member')} />
         ) : (
           <FamilyTree
-            initialMembers={displayMembers}
-            initialRelationships={displayRelationships}
+            initialMembers={members}
+            initialRelationships={relationships}
             onEditMember={handleEditMember}
           />
         )}
@@ -211,7 +212,7 @@ export default function FamilyTreeApp({ initialMembers, initialRelationships }: 
 
               {modalType === 'relationship' && (
                 <RelationshipForm
-                  members={displayMembers}
+                  members={members}
                   onSubmit={handleCreateRelationship}
                   onCancel={handleCloseModal}
                 />
