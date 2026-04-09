@@ -104,3 +104,19 @@ export interface RelationshipFormData {
   related_member_id: string;
   relationship_type: 'parent' | 'child' | 'spouse';
 }
+
+// Gallery photo types
+export interface GalleryPhoto {
+  id: string;
+  member_id: string;
+  uploaded_by_user_id: string;
+  photo_url: string;
+  caption: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GalleryPhotoFormData {
+  photo: File;
+  caption?: string;
+}

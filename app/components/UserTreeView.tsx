@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useMembers } from '@/hooks/useMembers';
+import { toast } from 'react-toastify';
 import FamilyTree from './tree/FamilyTree';
 import MemberDetail from './members/MemberDetail';
+import MemberForm from './members/MemberForm';
 import { TreeLoadingSkeleton } from './LoadingSkeleton';
-import type { Member, MemberWithRelationships } from '@/lib/types';
+import type { Member, MemberWithRelationships, MemberFormData } from '@/lib/types';
 
 interface UserTreeViewProps {
   onLogout: () => void;
@@ -13,8 +15,9 @@ interface UserTreeViewProps {
 }
 
 export default function UserTreeView({ onLogout, currentUserMemberId }: UserTreeViewProps) {
-  const { members, relationships, loading, error, fetchMembers } = useMembers();
+  const { members, relationships, loading, error, fetchMembers, updateMember } = useMembers();
   const [selectedMember, setSelectedMember] = useState<MemberWithRelationships | null>(null);
+  const [isEditingOwnProfile, setIsEditingOwnProfile] = useState(false);
 
   useEffect(() => {
     fetchMembers();
@@ -49,6 +52,41 @@ export default function UserTreeView({ onLogout, currentUserMemberId }: UserTree
     if (member) {
       setSelectedMember(getMemberWithRelationships(member));
     }
+  };
+
+  const handleEditOwnProfile = () => {
+    if (selectedMember && selectedMember.id === currentUserMemberId) {
+      setIsEditingOwnProfile(true);
+    }
+  };
+
+  const handleUpdateOwnProfile = async (data: MemberFormData) => {
+    if (!selectedMember || selectedMember.id !== currentUserMemberId) return;
+    
+    const toastId = toast.loading('Mise à jour de votre profil...');
+    
+    const result = await updateMember(selectedMember.id, data);
+    if (result) {
+      toast.update(toastId, {
+        render: 'Profil mis à jour avec succès',
+        type: 'success',
+        isLoading: false,
+        autoClose: 3000,
+      });
+      setIsEditingOwnProfile(false);
+      setSelectedMember(getMemberWithRelationships(result));
+    } else {
+      toast.update(toastId, {
+        render: 'Erreur lors de la mise à jour',
+        type: 'error',
+        isLoading: false,
+        autoClose: 3000,
+      });
+    }
+  };
+
+  const handleCloseEdit = () => {
+    setIsEditingOwnProfile(false);
   };
 
   if (loading && members.length === 0) {
@@ -107,16 +145,50 @@ export default function UserTreeView({ onLogout, currentUserMemberId }: UserTree
       </main>
 
       {/* Member detail modal */}
-      {selectedMember && (
+      {selectedMember && !isEditingOwnProfile && (
         <MemberDetail
           member={selectedMember}
-          onEdit={() => {}}
+          onEdit={handleEditOwnProfile}
           onClose={() => setSelectedMember(null)}
-          readOnly={true}
+          readOnly={selectedMember.id !== currentUserMemberId}
           currentUserMemberId={currentUserMemberId}
           allMembers={members}
           allRelationships={relationships}
         />
+      )}
+
+      {/* Edit own profile modal */}
+      {isEditingOwnProfile && selectedMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div
+            className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+            onClick={handleCloseEdit}
+          ></div>
+
+          <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="bg-white px-4 sm:px-6 pt-5 pb-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Modifier mon profil
+                </h3>
+                <button
+                  onClick={handleCloseEdit}
+                  className="text-gray-400 hover:text-gray-500 focus:outline-none transition-colors duration-200"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <MemberForm
+                member={selectedMember}
+                onSubmit={handleUpdateOwnProfile}
+                onCancel={handleCloseEdit}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

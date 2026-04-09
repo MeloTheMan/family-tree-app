@@ -4,6 +4,7 @@ import { MemberWithRelationships, Member, Relationship } from '@/lib/types';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { calculateRelationship } from '@/lib/utils/relationship-calculator';
+import PhotoGallery from './PhotoGallery';
 
 interface MemberDetailProps {
   member: MemberWithRelationships;
@@ -169,8 +170,9 @@ export default function MemberDetail({
           </div>
 
           {/* Relationships section */}
-          <div className="border-t border-gray-200 pt-6">
-            <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Relations familiales</h4>
+          <div className="border-t border-gray-200 pt-6 space-y-6">
+            <div>
+              <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Relations familiales</h4>
             
             {relationshipLabel ? (
               // For users: show calculated relationship
@@ -307,6 +309,12 @@ export default function MemberDetail({
                 )}
               </div>
             )}
+            </div>
+
+            {/* Photo Gallery Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <PhotoGallery memberId={member.id} />
+            </div>
           </div>
         </div>
       </div>

@@ -12,6 +12,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const supabase = await createClient();
+    const { cookies } = await import('next/headers');
 
     // Validate member ID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -46,6 +47,29 @@ export async function PUT(
         },
         { status: 404 }
       );
+    }
+
+    // Check permissions: admin can edit anyone, users can only edit themselves
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('session');
+    
+    if (sessionCookie) {
+      const session = JSON.parse(sessionCookie.value);
+      const isAdmin = session.userType === 'admin';
+      const isOwnProfile = session.memberId === id;
+
+      if (!isAdmin && !isOwnProfile) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: ErrorCode.VALIDATION_ERROR,
+              message: 'Vous ne pouvez modifier que vos propres informations',
+            },
+          },
+          { status: 403 }
+        );
+      }
     }
 
     const formData = await request.formData();

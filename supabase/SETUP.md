@@ -33,13 +33,20 @@ This document provides step-by-step instructions for setting up the Supabase bac
 11. Copy and paste the contents of `supabase/migrations/003_create_member_positions_table.sql`
 12. Click "Run" to execute the migration
 13. Verify the member_positions table was created successfully
+14. Continue with migrations 005, 006, 007 for user authentication
+15. Create another new query
+16. Copy and paste the contents of `supabase/migrations/008_create_member_gallery_photos_table.sql`
+17. Click "Run" to execute the migration
+18. Verify the member_gallery_photos table was created successfully
 
 ### Verify Tables
 
 Navigate to **Table Editor** in the left sidebar to confirm all tables exist:
-- `members` table with columns: id, name, birth_date, birthplace, photo_url, created_at, updated_at
+- `members` table with columns: id, name, last_name, birth_date, birthplace, work, photo_url, created_at, updated_at
 - `relationships` table with columns: id, member_id, related_member_id, relationship_type, created_at
 - `member_positions` table with columns: member_id, position_x, position_y, updated_at
+- `users` table with columns: id, username, password, user_type, member_id, created_at, updated_at
+- `member_gallery_photos` table with columns: id, member_id, uploaded_by_user_id, photo_url, caption, created_at, updated_at
 
 ## Step 3: Create Storage Bucket for Member Photos
 
