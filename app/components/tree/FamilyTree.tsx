@@ -67,10 +67,20 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
 
   // Convert TreeNode to ReactFlow Node format - memoized
   const initialNodes: Node[] = useMemo(() => {
+    // Load saved positions from localStorage
+    const savedPositions = typeof window !== 'undefined' 
+      ? localStorage.getItem('family-tree-positions')
+      : null;
+    
+    const positionsMap = savedPositions 
+      ? JSON.parse(savedPositions) 
+      : {};
+
     return layoutNodes.map((node) => ({
       id: node.id,
       type: 'member',
-      position: node.position,
+      // Use saved position if available, otherwise use calculated position
+      position: positionsMap[node.id] || node.position,
       data: {
         ...node.data,
         isSelected: node.id === selectedMemberId,
@@ -89,10 +99,43 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
     setNodes(initialNodes);
   }, [initialNodes]);
 
-  // Handle node drag - update node positions
+  // Handle reset layout to default positions
+  const handleResetLayout = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('family-tree-positions');
+      console.log('Cleared saved positions from localStorage');
+      
+      // Reset nodes to default calculated positions
+      const defaultNodes = layoutNodes.map((node) => ({
+        id: node.id,
+        type: 'member',
+        position: node.position,
+        data: {
+          ...node.data,
+          isSelected: node.id === selectedMemberId,
+          onClick: () => handleNodeClick(node.id),
+        },
+        width: 192,
+        height: 128,
+        zIndex: 10,
+        draggable: true,
+      }));
+      
+      setNodes(defaultNodes);
+      
+      // Fit view after reset
+      setTimeout(() => {
+        fitView({ padding: 0.2, duration: 800 });
+      }, 100);
+    }
+  }, [layoutNodes, selectedMemberId, handleNodeClick, fitView]);
+
+  // Handle node drag - update node positions and save to localStorage
   const onNodesChange = useCallback((changes: any) => {
     setNodes((nds) => {
       const updatedNodes = [...nds];
+      let positionsChanged = false;
+
       changes.forEach((change: any) => {
         if (change.type === 'position' && change.position) {
           const nodeIndex = updatedNodes.findIndex(n => n.id === change.id);
@@ -101,9 +144,24 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
               ...updatedNodes[nodeIndex],
               position: change.position,
             };
+            positionsChanged = true;
           }
         }
       });
+
+      // Save positions to localStorage when dragging ends
+      if (positionsChanged && changes.some((c: any) => c.dragging === false)) {
+        const positionsMap: Record<string, { x: number; y: number }> = {};
+        updatedNodes.forEach(node => {
+          positionsMap[node.id] = node.position;
+        });
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('family-tree-positions', JSON.stringify(positionsMap));
+          console.log('Saved node positions to localStorage');
+        }
+      }
+
       return updatedNodes;
     });
   }, []);
@@ -229,7 +287,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
           size={1} 
           className="opacity-50" 
         />
-        <TreeControls />
+        <TreeControls onResetLayout={handleResetLayout} />
       </ReactFlow>
 
       {/* Member Detail Panel */}

@@ -2,7 +2,11 @@
 
 import { useReactFlow } from '@xyflow/react';
 
-export default function TreeControls() {
+interface TreeControlsProps {
+  onResetLayout?: () => void;
+}
+
+export default function TreeControls({ onResetLayout }: TreeControlsProps) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   const handleZoomIn = () => {
@@ -15,6 +19,12 @@ export default function TreeControls() {
 
   const handleResetView = () => {
     fitView({ duration: 300, padding: 0.2 });
+  };
+
+  const handleResetLayout = () => {
+    if (onResetLayout) {
+      onResetLayout();
+    }
   };
 
   return (
@@ -84,6 +94,30 @@ export default function TreeControls() {
           />
         </svg>
       </button>
+
+      {/* Reset Layout Button */}
+      {onResetLayout && (
+        <button
+          onClick={handleResetLayout}
+          className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg border-2 border-gray-300 bg-white shadow-md transition-all duration-200 hover:border-orange-500 hover:shadow-lg hover:scale-110 active:scale-95"
+          aria-label="Reset layout to default"
+          title="Reset layout to default"
+        >
+          <svg
+            className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+            />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
