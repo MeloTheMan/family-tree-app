@@ -220,7 +220,7 @@ export default function MemberDetail({
                               </svg>
                             </div>
                           )}
-                          <span className="text-gray-900 font-medium">{parent.name}</span>
+                          <span className="text-gray-900 font-medium">{parent.name} {parent.last_name}</span>
                         </li>
                       ))}
                     </ul>
@@ -257,7 +257,7 @@ export default function MemberDetail({
                               </svg>
                             </div>
                           )}
-                          <span className="text-gray-900 font-medium">{child.name}</span>
+                          <span className="text-gray-900 font-medium">{child.name} {child.last_name}</span>
                         </li>
                       ))}
                     </ul>
@@ -294,7 +294,7 @@ export default function MemberDetail({
                               </svg>
                             </div>
                           )}
-                          <span className="text-gray-900 font-medium">{spouse.name}</span>
+                          <span className="text-gray-900 font-medium">{spouse.name} {spouse.last_name}</span>
                         </li>
                       ))}
                     </ul>
