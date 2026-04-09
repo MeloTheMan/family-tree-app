@@ -25,7 +25,10 @@ export function useAuth(): UseAuthReturn {
       const response = await fetch('/api/auth/session');
       const result = await response.json();
 
+      console.log('checkSession - Response:', response.ok, result);
+
       if (response.ok && result.success) {
+        console.log('checkSession - Setting session:', result.data);
         setSession(result.data);
       } else {
         setSession(null);
@@ -53,11 +56,14 @@ export function useAuth(): UseAuthReturn {
 
       const result = await response.json();
 
+      console.log('login - Response:', response.ok, result);
+
       if (!response.ok || !result.success) {
         setError(result.error?.message || 'Erreur lors de la connexion');
         return false;
       }
 
+      console.log('login - Setting session:', result.data);
       setSession(result.data);
       return true;
     } catch (err) {
