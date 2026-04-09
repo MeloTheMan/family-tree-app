@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import FamilyTree from './tree/FamilyTree';
 import MemberDetail from './members/MemberDetail';
 import MemberForm from './members/MemberForm';
+import ChangeCredentialsForm from './auth/ChangeCredentialsForm';
 import { TreeLoadingSkeleton } from './LoadingSkeleton';
 import type { Member, MemberWithRelationships, MemberFormData } from '@/lib/types';
 
@@ -18,6 +19,7 @@ export default function UserTreeView({ onLogout, currentUserMemberId }: UserTree
   const { members, relationships, loading, error, fetchMembers, updateMember } = useMembers();
   const [selectedMember, setSelectedMember] = useState<MemberWithRelationships | null>(null);
   const [isEditingOwnProfile, setIsEditingOwnProfile] = useState(false);
+  const [showChangeCredentials, setShowChangeCredentials] = useState(false);
 
   useEffect(() => {
     fetchMembers();
@@ -89,6 +91,11 @@ export default function UserTreeView({ onLogout, currentUserMemberId }: UserTree
     setIsEditingOwnProfile(false);
   };
 
+  const handleCredentialsChanged = () => {
+    // User will be logged out automatically after credentials change
+    onLogout();
+  };
+
   if (loading && members.length === 0) {
     return <TreeLoadingSkeleton />;
   }
@@ -115,12 +122,24 @@ export default function UserTreeView({ onLogout, currentUserMemberId }: UserTree
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">Arbre Généalogique Familial</h1>
-        <button
-          onClick={onLogout}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
-        >
-          Se déconnecter
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowChangeCredentials(true)}
+            className="px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors duration-200 flex items-center gap-2"
+            title="Modifier mes identifiants"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+            <span className="hidden sm:inline">Mes identifiants</span>
+          </button>
+          <button
+            onClick={onLogout}
+            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
+          >
+            Se déconnecter
+          </button>
+        </div>
       </header>
 
       {/* Main content */}
@@ -189,6 +208,14 @@ export default function UserTreeView({ onLogout, currentUserMemberId }: UserTree
             </div>
           </div>
         </div>
+      )}
+
+      {/* Change credentials modal */}
+      {showChangeCredentials && (
+        <ChangeCredentialsForm
+          onClose={() => setShowChangeCredentials(false)}
+          onSuccess={handleCredentialsChanged}
+        />
       )}
     </div>
   );
