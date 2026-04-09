@@ -3,8 +3,11 @@
 export interface Member {
   id: string;
   name: string;
+  last_name: string | null;
   birth_date: string | null;
   birthplace: string | null;
+  work: string | null;
+  age: number | null;
   photo_url: string | null;
   created_at: string;
   updated_at: string;
@@ -64,11 +67,24 @@ export enum ErrorCode {
   DATABASE_ERROR = 'DATABASE_ERROR'
 }
 
+// User types
+export interface User {
+  id: string;
+  username: string;
+  password: string;
+  user_type: 'admin' | 'user';
+  member_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Form data types
 export interface MemberFormData {
   name: string;
+  last_name: string | null;
   birth_date: string | null;
   birthplace: string | null;
+  work: string | null;
   photo?: File;
 }
 
