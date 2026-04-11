@@ -4,6 +4,7 @@ import { MemberWithRelationships, Member, Relationship } from '@/lib/types';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { calculateRelationship } from '@/lib/utils/relationship-calculator';
+import { calculateNuclearFamily } from '@/lib/utils/nuclear-family';
 import PhotoGallery from './PhotoGallery';
 
 interface MemberDetailProps {
@@ -31,6 +32,11 @@ export default function MemberDetail({
   // Calculate relationship if user is viewing
   const relationshipLabel = currentUserMemberId && allMembers.length > 0 && allRelationships.length > 0
     ? calculateRelationship(currentUserMemberId, member.id, allMembers, allRelationships)
+    : null;
+
+  // Calculate nuclear family if viewing own profile
+  const nuclearFamily = currentUserMemberId === member.id && allMembers.length > 0 && allRelationships.length > 0
+    ? calculateNuclearFamily(member.id, allMembers, allRelationships)
     : null;
 
   // Handle click outside to close
@@ -310,6 +316,89 @@ export default function MemberDetail({
               </div>
             )}
             </div>
+
+            {/* Nuclear Family Section - Only for current user viewing their own profile */}
+            {nuclearFamily && (nuclearFamily.parents.length > 0 || nuclearFamily.siblings.length > 0) && (
+              <div className="border-t border-gray-200 pt-6">
+                <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Famille nucléaire</h4>
+                
+                <div className="space-y-4">
+                  {/* Parents */}
+                  {nuclearFamily.parents.length > 0 && (
+                    <div className="animate-slideInRight">
+                      <h5 className="text-sm font-medium text-gray-500 mb-2">
+                        Parents ({nuclearFamily.parents.length})
+                      </h5>
+                      <ul className="space-y-2">
+                        {nuclearFamily.parents.map((parent, index) => (
+                          <li 
+                            key={parent.id} 
+                            className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg transition-all duration-200 hover:bg-purple-100 hover:translate-x-1"
+                            style={{ animationDelay: `${index * 0.05}s` }}
+                          >
+                            {parent.photo_url ? (
+                              <Image
+                                src={parent.photo_url}
+                                alt={parent.name}
+                                width={40}
+                                height={40}
+                                className="rounded-full object-cover w-10 h-10"
+                                loading="lazy"
+                                quality={70}
+                              />
+                            ) : (
+                              <div className="w-10 h-10 bg-purple-300 rounded-full flex items-center justify-center">
+                                <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )}
+                            <span className="text-gray-900 font-medium">{parent.name} {parent.last_name}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Siblings */}
+                  {nuclearFamily.siblings.length > 0 && (
+                    <div className="animate-slideInRight" style={{ animationDelay: '0.1s' }}>
+                      <h5 className="text-sm font-medium text-gray-500 mb-2">
+                        Frères et sœurs ({nuclearFamily.siblings.length})
+                      </h5>
+                      <ul className="space-y-2">
+                        {nuclearFamily.siblings.map((sibling, index) => (
+                          <li 
+                            key={sibling.id} 
+                            className="flex items-center gap-3 p-3 bg-green-50 rounded-lg transition-all duration-200 hover:bg-green-100 hover:translate-x-1"
+                            style={{ animationDelay: `${0.1 + index * 0.05}s` }}
+                          >
+                            {sibling.photo_url ? (
+                              <Image
+                                src={sibling.photo_url}
+                                alt={sibling.name}
+                                width={40}
+                                height={40}
+                                className="rounded-full object-cover w-10 h-10"
+                                loading="lazy"
+                                quality={70}
+                              />
+                            ) : (
+                              <div className="w-10 h-10 bg-green-300 rounded-full flex items-center justify-center">
+                                <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )}
+                            <span className="text-gray-900 font-medium">{sibling.name} {sibling.last_name}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Photo Gallery Section */}
             <div className="border-t border-gray-200 pt-6">
