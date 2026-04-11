@@ -15,7 +15,8 @@ La fonctionnalité de recherche permet aux utilisateurs de trouver rapidement de
 - Recherche par prénom, nom de famille ou nom complet
 - Recherche insensible à la casse
 - Recherche partielle (trouve "Jean" dans "Jean-Pierre")
-- Mise à jour en temps réel pendant la saisie
+- Déclenchement de la recherche en appuyant sur la touche **Entrée**
+- Possibilité de modifier la requête avant de lancer la recherche
 
 ### 3. Navigation entre les résultats
 - Compteur de résultats : "1 / 5" affiche le résultat actuel et le total
@@ -37,9 +38,10 @@ La fonctionnalité de recherche permet aux utilisateurs de trouver rapidement de
 
 ### 6. Raccourcis clavier
 - `Ctrl+F` (ou `Cmd+F` sur Mac) : Focus sur la barre de recherche
+- `Entrée` : Lancer la recherche
 - `Échap` : Effacer la recherche
-- `↑` ou `←` : Résultat précédent
-- `↓` ou `→` : Résultat suivant
+- `↑` ou `←` : Résultat précédent (après avoir lancé une recherche)
+- `↓` ou `→` : Résultat suivant (après avoir lancé une recherche)
 
 ### 7. Bouton d'effacement
 - Icône "X" pour effacer rapidement la recherche
@@ -51,8 +53,8 @@ La fonctionnalité de recherche permet aux utilisateurs de trouver rapidement de
 ### Recherche simple
 1. Cliquez sur la barre de recherche ou appuyez sur `Ctrl+F`
 2. Tapez le nom ou prénom du membre recherché
-3. Les résultats s'affichent automatiquement
-4. Le premier résultat est mis en évidence et centré
+3. Appuyez sur **Entrée** pour lancer la recherche
+4. Les résultats s'affichent et le premier résultat est mis en évidence et centré
 
 ### Navigation entre plusieurs résultats
 1. Si plusieurs membres correspondent à votre recherche
@@ -126,6 +128,6 @@ if (node) {
 ## Notes de performance
 
 - La recherche est effectuée côté client pour une réactivité maximale
-- Pas de debouncing nécessaire car le filtrage est très rapide
+- La recherche se déclenche uniquement sur appui de la touche Entrée pour éviter les recherches inutiles
 - L'animation de highlight se termine automatiquement après 2 secondes
 - Le centrage utilise les animations natives de ReactFlow pour des performances optimales

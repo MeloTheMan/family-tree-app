@@ -11,6 +11,7 @@ interface SearchBarProps {
 
 export default function SearchBar({ members, onResultSelect, onClearHighlight }: SearchBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [inputValue, setInputValue] = useState('');
   const [searchResults, setSearchResults] = useState<Member[]>([]);
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
@@ -48,11 +49,18 @@ export default function SearchBar({ members, onResultSelect, onClearHighlight }:
     }
   }, [members, onResultSelect, onClearHighlight]);
 
-  // Handle search input change
+  // Handle search input change (just update the input value)
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    searchMembers(query);
+    setInputValue(e.target.value);
+  };
+
+  // Handle Enter key to trigger search
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      setSearchQuery(inputValue);
+      searchMembers(inputValue);
+    }
   };
 
   // Navigate to previous result
@@ -82,6 +90,7 @@ export default function SearchBar({ members, onResultSelect, onClearHighlight }:
   // Clear search
   const handleClear = useCallback(() => {
     setSearchQuery('');
+    setInputValue('');
     setSearchResults([]);
     setCurrentResultIndex(0);
     setIsSearching(false);
@@ -147,9 +156,10 @@ export default function SearchBar({ members, onResultSelect, onClearHighlight }:
           <input
             ref={inputRef}
             type="text"
-            value={searchQuery}
+            value={inputValue}
             onChange={handleSearchChange}
-            placeholder="Rechercher un membre... (Ctrl+F)"
+            onKeyPress={handleKeyPress}
+            placeholder="Rechercher un membre... (Entrée pour rechercher)"
             className="flex-1 py-3 px-2 text-gray-900 placeholder-gray-400 focus:outline-none"
           />
 
@@ -224,7 +234,7 @@ export default function SearchBar({ members, onResultSelect, onClearHighlight }:
           </div>
 
           {/* Clear Button */}
-          {searchQuery && (
+          {inputValue && (
             <button
               onClick={handleClear}
               className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors border-l border-gray-300"
