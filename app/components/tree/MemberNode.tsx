@@ -7,6 +7,7 @@ import { Member } from '@/lib/types';
 
 interface MemberNodeData extends Member {
   isSelected?: boolean;
+  isHighlighted?: boolean;
   onClick?: () => void;
 }
 
@@ -15,7 +16,7 @@ interface MemberNodeProps {
 }
 
 function MemberNode({ data }: MemberNodeProps) {
-  const { isSelected = false, onClick, ...memberData } = data;
+  const { isSelected = false, isHighlighted = false, onClick, ...memberData } = data;
   const [imageLoading, setImageLoading] = useState(true);
   
   return (
@@ -25,6 +26,7 @@ function MemberNode({ data }: MemberNodeProps) {
         w-40 sm:w-48 rounded-lg border-2 bg-white shadow-md transition-all duration-200 cursor-move
         hover:shadow-xl hover:scale-105 active:scale-95 relative z-10
         ${isSelected ? 'border-blue-500 ring-2 ring-blue-300 shadow-lg' : 'border-gray-300'}
+        ${isHighlighted ? 'animate-highlight-blink' : ''}
       `}
     >
       {/* Connection handles for edges - positioned outside the node border */}

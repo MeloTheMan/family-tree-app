@@ -19,6 +19,7 @@ import { calculateTreeLayout } from '@/lib/utils/tree-layout';
 import { usePositions } from '@/hooks/usePositions';
 import MemberNode from './MemberNode';
 import TreeControls from './TreeControls';
+import SearchBar from './SearchBar';
 import MemberDetail from '../members/MemberDetail';
 
 interface FamilyTreeProps {
@@ -44,10 +45,11 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
   const actualRelationships = relationships || initialRelationships || [];
   
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [nodes, setNodes] = useState<Node[]>([]);
   const nodesInitialized = useNodesInitialized();
-  const { fitView } = useReactFlow();
+  const { fitView, getNode, setCenter } = useReactFlow();
   const { positions, savePositions } = usePositions();
 
   // Force fitView when nodes are initialized
@@ -92,6 +94,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       data: {
         ...node.data,
         isSelected: node.id === selectedMemberId,
+        isHighlighted: node.id === highlightedMemberId,
         onClick: () => handleNodeClick(node.id),
       },
       // Add explicit dimensions for edge calculations
@@ -100,7 +103,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       zIndex: 10, // Nodes above edges
       draggable: !readOnly, // Enable dragging only if not read-only
     }));
-  }, [layoutNodes, selectedMemberId, handleNodeClick, positions, readOnly]);
+  }, [layoutNodes, selectedMemberId, highlightedMemberId, handleNodeClick, positions, readOnly]);
 
   // Update nodes when layout changes or selection changes
   useEffect(() => {
@@ -231,6 +234,29 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
     }
   }, [selectedMemberWithRelationships, onEditMember, handleCloseDetail]);
 
+  // Handle search result selection
+  const handleSearchResultSelect = useCallback((memberId: string) => {
+    setHighlightedMemberId(memberId);
+    
+    // Center the view on the selected node
+    const node = getNode(memberId);
+    if (node) {
+      const x = node.position.x + (node.width || 192) / 2;
+      const y = node.position.y + (node.height || 128) / 2;
+      setCenter(x, y, { zoom: 1, duration: 800 });
+    }
+    
+    // Clear highlight after animation completes
+    setTimeout(() => {
+      setHighlightedMemberId(null);
+    }, 2000);
+  }, [getNode, setCenter]);
+
+  // Handle clear highlight
+  const handleClearHighlight = useCallback(() => {
+    setHighlightedMemberId(null);
+  }, []);
+
   return (
     <div className="w-full h-full relative">
       <ReactFlow
@@ -265,6 +291,11 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
           className="opacity-50" 
         />
         <TreeControls />
+        <SearchBar 
+          members={actualMembers}
+          onResultSelect={handleSearchResultSelect}
+          onClearHighlight={handleClearHighlight}
+        />
       </ReactFlow>
 
       {/* Member Detail Panel */}

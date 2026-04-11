@@ -77,6 +77,25 @@ body {
   }
 }
 
+@keyframes highlightBlink {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    border-color: rgb(59, 130, 246);
+  }
+  25% {
+    box-shadow: 0 0 20px 8px rgba(59, 130, 246, 0.8);
+    border-color: rgb(59, 130, 246);
+  }
+  50% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    border-color: rgb(59, 130, 246);
+  }
+  75% {
+    box-shadow: 0 0 20px 8px rgba(59, 130, 246, 0.8);
+    border-color: rgb(59, 130, 246);
+  }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
 }
@@ -95,6 +114,10 @@ body {
 
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-highlight-blink {
+  animation: highlightBlink 2s ease-in-out;
 }
 
 /* Smooth scrolling */
