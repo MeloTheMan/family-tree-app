@@ -28,6 +28,7 @@ interface FamilyTreeProps {
   members?: Member[];
   relationships?: Relationship[];
   onEditMember?: (member: Member) => void;
+  onDeleteMember?: (member: Member) => void;
   onMemberClick?: (memberId: string) => void;
   readOnly?: boolean;
 }
@@ -38,6 +39,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
   members,
   relationships,
   onEditMember,
+  onDeleteMember,
   onMemberClick,
   readOnly = false,
 }: FamilyTreeProps) {
@@ -234,6 +236,14 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
     }
   }, [selectedMemberWithRelationships, onEditMember, handleCloseDetail]);
 
+  // Handle delete member
+  const handleDeleteMember = useCallback(() => {
+    if (selectedMemberWithRelationships && onDeleteMember) {
+      onDeleteMember(selectedMemberWithRelationships);
+      handleCloseDetail();
+    }
+  }, [selectedMemberWithRelationships, onDeleteMember, handleCloseDetail]);
+
   // Handle search result selection
   const handleSearchResultSelect = useCallback((memberId: string) => {
     setHighlightedMemberId(memberId);
@@ -303,6 +313,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
         <MemberDetail
           member={selectedMemberWithRelationships}
           onEdit={handleEditMember}
+          onDelete={onDeleteMember ? handleDeleteMember : undefined}
           onClose={handleCloseDetail}
           readOnly={readOnly}
         />

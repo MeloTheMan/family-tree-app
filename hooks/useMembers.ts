@@ -11,6 +11,8 @@ interface UseMembersReturn {
   fetchMembers: () => Promise<void>;
   createMember: (data: MemberFormData) => Promise<Member | null>;
   updateMember: (id: string, data: MemberFormData) => Promise<Member | null>;
+  deleteMember: (id: string) => Promise<boolean>;
+  deleteAllMembers: () => Promise<boolean>;
 }
 
 export function useMembers(): UseMembersReturn {
@@ -151,6 +153,67 @@ export function useMembers(): UseMembersReturn {
     }
   }, [fetchMembers]);
 
+  const deleteMember = useCallback(async (id: string): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/members/${id}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        const apiError = result as ApiError;
+        throw new Error(apiError.error.message || 'Erreur lors de la suppression du membre');
+      }
+
+      // Refresh members list after successful deletion
+      await fetchMembers();
+
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inattendue';
+      setError(errorMessage);
+      console.error('Error deleting member:', err);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchMembers]);
+
+  const deleteAllMembers = useCallback(async (): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/members/delete-all', {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        const apiError = result as ApiError;
+        throw new Error(apiError.error.message || 'Erreur lors de la suppression de l\'arbre');
+      }
+
+      // Clear local state
+      setMembers([]);
+      setRelationships([]);
+
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inattendue';
+      setError(errorMessage);
+      console.error('Error deleting all members:', err);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     members,
     relationships,
@@ -159,5 +222,7 @@ export function useMembers(): UseMembersReturn {
     fetchMembers,
     createMember,
     updateMember,
+    deleteMember,
+    deleteAllMembers,
   };
 }

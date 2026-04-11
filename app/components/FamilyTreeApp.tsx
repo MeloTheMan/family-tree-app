@@ -9,6 +9,7 @@ import FamilyTree from './tree/FamilyTree';
 import MemberForm from './members/MemberForm';
 import RelationshipForm from './relationships/RelationshipForm';
 import ChangeCredentialsForm from './auth/ChangeCredentialsForm';
+import ConfirmDialog from './ConfirmDialog';
 import { TreeLoadingSkeleton, EmptyState } from './LoadingSkeleton';
 
 interface FamilyTreeAppProps {
@@ -18,7 +19,7 @@ interface FamilyTreeAppProps {
 type ModalType = 'member' | 'relationship' | 'edit' | null;
 
 export default function FamilyTreeApp({ onLogout }: FamilyTreeAppProps) {
-  const { members, relationships, loading, error, fetchMembers, createMember, updateMember } = useMembers();
+  const { members, relationships, loading, error, fetchMembers, createMember, updateMember, deleteMember, deleteAllMembers } = useMembers();
   const { createRelationship, error: relationshipError } = useRelationships({
     onSuccess: () => {
       fetchMembers();
@@ -30,6 +31,13 @@ export default function FamilyTreeApp({ onLogout }: FamilyTreeAppProps) {
   const [modalType, setModalType] = useState<ModalType>(null);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [showChangeCredentials, setShowChangeCredentials] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   // Fetch members on mount
   useEffect(() => {
@@ -133,6 +141,66 @@ export default function FamilyTreeApp({ onLogout }: FamilyTreeAppProps) {
     onLogout();
   };
 
+  const handleDeleteMember = (member: Member) => {
+    setConfirmDialog({
+      show: true,
+      title: 'Supprimer ce membre ?',
+      message: `Êtes-vous sûr de vouloir supprimer ${member.name} ${member.last_name || ''} ? Cette action supprimera également toutes ses relations, photos et données de position. Cette action est irréversible.`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        const toastId = toast.loading('Suppression du membre...');
+        
+        const result = await deleteMember(member.id);
+        if (result) {
+          toast.update(toastId, {
+            render: 'Membre supprimé avec succès',
+            type: 'success',
+            isLoading: false,
+            autoClose: 3000,
+          });
+        } else {
+          toast.update(toastId, {
+            render: 'Erreur lors de la suppression',
+            type: 'error',
+            isLoading: false,
+            autoClose: 3000,
+          });
+        }
+      },
+      danger: true,
+    });
+  };
+
+  const handleDeleteAllMembers = () => {
+    setConfirmDialog({
+      show: true,
+      title: 'Supprimer tout l\'arbre généalogique ?',
+      message: 'Êtes-vous sûr de vouloir supprimer TOUS les membres et TOUTES les données de l\'arbre généalogique ? Cette action est IRRÉVERSIBLE et supprimera toutes les photos, relations et positions.',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        const toastId = toast.loading('Suppression de l\'arbre...');
+        
+        const result = await deleteAllMembers();
+        if (result) {
+          toast.update(toastId, {
+            render: 'Arbre généalogique supprimé avec succès',
+            type: 'success',
+            isLoading: false,
+            autoClose: 3000,
+          });
+        } else {
+          toast.update(toastId, {
+            render: 'Erreur lors de la suppression',
+            type: 'error',
+            isLoading: false,
+            autoClose: 3000,
+          });
+        }
+      },
+      danger: true,
+    });
+  };
+
   if (loading && members.length === 0) {
     return <TreeLoadingSkeleton />;
   }
@@ -174,6 +242,18 @@ export default function FamilyTreeApp({ onLogout }: FamilyTreeAppProps) {
           >
             Déconnexion
           </button>
+          {members.length > 0 && (
+            <button
+              onClick={handleDeleteAllMembers}
+              className="px-3 sm:px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 flex items-center gap-2"
+              title="Supprimer tout l'arbre"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span className="hidden lg:inline">Tout supprimer</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -186,6 +266,7 @@ export default function FamilyTreeApp({ onLogout }: FamilyTreeAppProps) {
             initialMembers={members}
             initialRelationships={relationships}
             onEditMember={handleEditMember}
+            onDeleteMember={handleDeleteMember}
           />
         )}
       </div>
@@ -244,6 +325,19 @@ export default function FamilyTreeApp({ onLogout }: FamilyTreeAppProps) {
         <ChangeCredentialsForm
           onClose={() => setShowChangeCredentials(false)}
           onSuccess={handleCredentialsChanged}
+        />
+      )}
+
+      {/* Confirm dialog */}
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmText="Supprimer"
+          cancelText="Annuler"
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
         />
       )}
     </div>

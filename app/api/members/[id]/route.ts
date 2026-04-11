@@ -247,3 +247,149 @@ export async function PUT(
     );
   }
 }
+
+
+// DELETE /api/members/[id] - Delete a member and all related data
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const supabase = await createClient();
+
+    // Validate member ID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: ErrorCode.VALIDATION_ERROR,
+            message: 'ID de membre invalide',
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check if member exists
+    const { data: existingMember, error: fetchError } = await supabase
+      .from('members')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !existingMember) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: ErrorCode.NOT_FOUND,
+            message: 'Membre non trouvé',
+          },
+        },
+        { status: 404 }
+      );
+    }
+
+    // Delete member's photo from storage if exists
+    if (existingMember.photo_url) {
+      try {
+        const photoPath = existingMember.photo_url.split('/').pop();
+        if (photoPath) {
+          await supabase.storage
+            .from('member-photos')
+            .remove([photoPath]);
+        }
+      } catch (error) {
+        console.warn('Failed to delete member photo:', error);
+      }
+    }
+
+    // Delete member's gallery photos from storage
+    try {
+      const { data: galleryPhotos } = await supabase
+        .from('member_gallery_photos')
+        .select('photo_url')
+        .eq('member_id', id);
+
+      if (galleryPhotos && galleryPhotos.length > 0) {
+        const photoPaths = galleryPhotos
+          .map(photo => photo.photo_url.split('/').pop())
+          .filter(Boolean) as string[];
+        
+        if (photoPaths.length > 0) {
+          await supabase.storage
+            .from('gallery-photos')
+            .remove(photoPaths);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to delete gallery photos:', error);
+    }
+
+    // Delete relationships (CASCADE should handle this, but we do it explicitly)
+    await supabase
+      .from('relationships')
+      .delete()
+      .or(`member_id.eq.${id},related_member_id.eq.${id}`);
+
+    // Delete position data
+    await supabase
+      .from('member_positions')
+      .delete()
+      .eq('member_id', id);
+
+    // Delete gallery photos records
+    await supabase
+      .from('member_gallery_photos')
+      .delete()
+      .eq('member_id', id);
+
+    // Delete user account if exists
+    await supabase
+      .from('users')
+      .delete()
+      .eq('member_id', id);
+
+    // Finally, delete the member
+    const { error: deleteError } = await supabase
+      .from('members')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('Error deleting member:', deleteError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: ErrorCode.DATABASE_ERROR,
+            message: 'Erreur lors de la suppression du membre',
+            details: deleteError.message,
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Membre supprimé avec succès',
+    });
+  } catch (error) {
+    console.error('Unexpected error in DELETE /api/members/[id]:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: ErrorCode.DATABASE_ERROR,
+          message: 'Erreur inattendue',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
+      },
+      { status: 500 }
+    );
+  }
+}
