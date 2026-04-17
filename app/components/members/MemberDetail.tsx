@@ -36,8 +36,8 @@ export default function MemberDetail({
     ? calculateRelationship(currentUserMemberId, member.id, allMembers, allRelationships)
     : null;
 
-  // Calculate nuclear family if viewing own profile
-  const nuclearFamily = currentUserMemberId === member.id && allMembers.length > 0 && allRelationships.length > 0
+  // Calculate nuclear family for any member (not just current user)
+  const nuclearFamily = allMembers.length > 0 && allRelationships.length > 0
     ? calculateNuclearFamily(member.id, allMembers, allRelationships)
     : null;
 
@@ -332,7 +332,7 @@ export default function MemberDetail({
             )}
             </div>
 
-            {/* Nuclear Family Section - Only for current user viewing their own profile */}
+            {/* Nuclear Family Section - Shows parents and siblings for any member */}
             {nuclearFamily && (nuclearFamily.parents.length > 0 || nuclearFamily.siblings.length > 0) && (
               <div className="border-t border-gray-200 pt-6">
                 <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Famille nucléaire</h4>
