@@ -72,7 +72,7 @@ export interface User {
   id: string;
   username: string;
   password: string;
-  user_type: 'admin' | 'user';
+  user_type: 'admin' | 'owner' | 'user';
   member_id: string | null;
   created_at: string;
   updated_at: string;
@@ -80,7 +80,7 @@ export interface User {
 
 export interface Session {
   userId: string;
-  userType: 'admin' | 'user';
+  userType: 'admin' | 'owner' | 'user';
   memberId: string | null;
 }
 

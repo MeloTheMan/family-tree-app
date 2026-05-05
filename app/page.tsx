@@ -3,6 +3,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import LoginForm from './components/auth/LoginForm';
 import FamilyTreeApp from './components/FamilyTreeApp';
+import OwnerTreeView from './components/OwnerTreeView';
 import UserTreeView from './components/UserTreeView';
 import { TreeLoadingSkeleton } from './components/LoadingSkeleton';
 
@@ -25,6 +26,11 @@ export default function Home() {
   if (session.userType === 'admin') {
     console.log('Home - Rendering FamilyTreeApp');
     return <FamilyTreeApp onLogout={logout} />;
+  }
+
+  if (session.userType === 'owner') {
+    console.log('Home - Rendering OwnerTreeView');
+    return <OwnerTreeView onLogout={logout} ownerId={session.memberId || ''} />;
   }
 
   console.log('Home - Rendering UserTreeView');
