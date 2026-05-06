@@ -19,7 +19,7 @@ export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   nodeHeight: 120,
   horizontalGap: 100,  // Spacing between nodes within a group
   verticalGap: 180,    // Vertical spacing between generations
-  groupGap: 250,       // Spacing between different family groups
+  groupGap: 2500,       // Spacing between different family groups
 };
 
 /**
