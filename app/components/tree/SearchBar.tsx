@@ -184,11 +184,11 @@ export default function SearchBar({ members, onResultSelect, onClearHighlight }:
   const hasResults = searchResults.length > 0;
 
   return (
-    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-4">
+    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-2 sm:px-4">
       <div className="bg-white rounded-lg shadow-lg border-2 border-gray-300 overflow-hidden">
         <div className="flex items-center">
           {/* Search Icon */}
-          <div className="pl-4 pr-2">
+          <div className="pl-3 sm:pl-4 pr-2 flex-shrink-0">
             <svg
               className="w-5 h-5 text-gray-400"
               fill="none"
@@ -211,30 +211,30 @@ export default function SearchBar({ members, onResultSelect, onClearHighlight }:
             value={inputValue}
             onChange={handleSearchChange}
             onKeyPress={handleKeyPress}
-            placeholder="Rechercher un membre... (Entrée pour rechercher)"
-            className="flex-1 py-3 px-2 text-gray-900 placeholder-gray-400 focus:outline-none"
+            placeholder="Rechercher..."
+            className="flex-1 py-3 px-2 text-gray-900 placeholder-gray-400 focus:outline-none min-w-0 text-sm sm:text-base"
           />
 
-          {/* Results Counter */}
+          {/* Results Counter - Hidden on mobile when not searching */}
           {isSearching && (
-            <div className="px-3 text-sm text-gray-600 whitespace-nowrap">
+            <div className="hidden sm:block px-2 md:px-3 text-sm text-gray-600 whitespace-nowrap flex-shrink-0">
               {hasResults ? (
                 <span>
                   {currentResultIndex + 1} / {searchResults.length}
                 </span>
               ) : (
-                <span className="text-red-500">Aucun résultat</span>
+                <span className="text-red-500">Aucun</span>
               )}
             </div>
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex items-center border-l border-gray-300">
-            {/* Previous Button */}
+          <div className="flex items-center border-l border-gray-300 flex-shrink-0">
+            {/* Previous Button - Hidden on mobile */}
             <button
               onClick={handlePrevious}
               disabled={!hasMultipleResults}
-              className={`p-3 transition-colors ${
+              className={`hidden sm:block p-2 md:p-3 transition-colors ${
                 hasMultipleResults
                   ? 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
                   : 'text-gray-300 cursor-not-allowed'
@@ -257,11 +257,11 @@ export default function SearchBar({ members, onResultSelect, onClearHighlight }:
               </svg>
             </button>
 
-            {/* Next Button */}
+            {/* Next Button - Always visible */}
             <button
               onClick={handleNext}
               disabled={!hasMultipleResults}
-              className={`p-3 transition-colors ${
+              className={`p-2 md:p-3 transition-colors ${
                 hasMultipleResults
                   ? 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
                   : 'text-gray-300 cursor-not-allowed'
@@ -285,11 +285,11 @@ export default function SearchBar({ members, onResultSelect, onClearHighlight }:
             </button>
           </div>
 
-          {/* Clear Button */}
+          {/* Clear Button - Always visible when there's input */}
           {inputValue && (
             <button
               onClick={handleClear}
-              className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors border-l border-gray-300"
+              className="p-2 md:p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors border-l border-gray-300 flex-shrink-0"
               aria-label="Effacer la recherche"
               title="Effacer (Esc)"
             >
