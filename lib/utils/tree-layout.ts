@@ -83,13 +83,13 @@ export function applyAutoLayoutToNewMembers(
 ): Map<string, { x: number; y: number }> {
   // Calculate full layout
   const { nodes } = calculateTreeLayout(members, relationships, config);
-  
+
   // Create new positions map
   const newPositions = new Map(existingPositions);
-  
+
   // Update positions only for new members and their immediate family
   const affectedIds = new Set(newMemberIds);
-  
+
   // Add related members to affected set
   const relationshipMap = buildRelationshipMap(members, relationships);
   newMemberIds.forEach(id => {
@@ -100,14 +100,14 @@ export function applyAutoLayoutToNewMembers(
       rels.spouses.forEach(sid => affectedIds.add(sid));
     }
   });
-  
+
   // Apply new positions to affected members
   nodes.forEach(node => {
     if (affectedIds.has(node.id)) {
       newPositions.set(node.id, node.position);
     }
   });
-  
+
   return newPositions;
 }
 
@@ -238,7 +238,7 @@ function calculateHorizontalPositions(
       config,
       positions
     );
-    
+
     levelPositions.forEach((pos, memberId) => {
       positions.set(memberId, pos);
     });
@@ -279,14 +279,14 @@ function calculateLevelPositions(
     const rels = relationshipMap.get(member.id);
     if (rels) {
       rels.parents.forEach(pid => parentIds.add(pid));
-      
+
       // Add spouses to the same group
       rels.spouses.forEach(spouseId => {
         const spouseLevel = levels.get(spouseId);
         if (spouseLevel === level && !processed.has(spouseId)) {
           group.push(spouseId);
           processed.add(spouseId);
-          
+
           // Add spouse's parents too
           const spouseRels = relationshipMap.get(spouseId);
           if (spouseRels) {
@@ -302,7 +302,7 @@ function calculateLevelPositions(
       const parentPositions = Array.from(parentIds)
         .map(parentId => existingPositions.get(parentId))
         .filter(pos => pos !== undefined);
-      
+
       if (parentPositions.length > 0) {
         // Calculate average parent position
         const avgX = parentPositions.reduce((sum, pos) => sum + pos!.x, 0) / parentPositions.length;
@@ -327,10 +327,10 @@ function calculateLevelPositions(
   let currentX = 0;
   const occupiedRanges: Array<{ start: number; end: number; parentIds: Set<string> }> = [];
 
-  groups.forEach((group) => {
-    const groupWidth = group.members.length * config.nodeWidth + 
-                      (group.members.length - 1) * (config.horizontalGap / 3);
-    
+  groups.forEach((group, groupIndex) => {
+    const groupWidth = group.members.length * config.nodeWidth +
+      (group.members.length - 1) * (config.horizontalGap / 3);
+
     let targetX: number;
 
     if (group.parentX !== undefined) {
@@ -343,9 +343,9 @@ function calculateLevelPositions(
 
     // Check for collisions and adjust
     targetX = findNonCollidingPositionWithNuclearFamily(
-      targetX, 
-      groupWidth, 
-      occupiedRanges, 
+      targetX,
+      groupWidth,
+      occupiedRanges,
       group.parentIds,
       config
     );
@@ -357,16 +357,18 @@ function calculateLevelPositions(
     });
 
     // Determine spacing for next group
-    // Use groupGap only if this group has different parents than the next
-    const nextGroupIndex = groups.indexOf(group) + 1;
-    const hasNextGroup = nextGroupIndex < groups.length;
+    const hasNextGroup = groupIndex + 1 < groups.length;
     let spacingToUse = config.groupGap;
-    
+
     if (hasNextGroup) {
-      const nextGroup = groups[nextGroupIndex];
-      // Check if groups share the same parents (siblings from same parents)
-      const sharedParents = Array.from(group.parentIds).some(pid => nextGroup.parentIds.has(pid));
-      if (sharedParents) {
+      const nextGroup = groups[groupIndex + 1];
+      // Check if groups share ALL the same parents (siblings from same parents)
+      const sameParents = group.parentIds.size > 0 &&
+        nextGroup.parentIds.size > 0 &&
+        group.parentIds.size === nextGroup.parentIds.size &&
+        Array.from(group.parentIds).every(pid => nextGroup.parentIds.has(pid));
+
+      if (sameParents) {
         spacingToUse = config.horizontalGap; // Use smaller spacing for siblings
       }
     }
@@ -400,7 +402,7 @@ function findNonCollidingPositionWithNuclearFamily(
 
   while (attempts < maxAttempts) {
     let hasCollision = false;
-    
+
     for (const range of occupiedRanges) {
       const overlaps = !(x + width < range.start || x > range.end);
       if (overlaps) {
@@ -432,7 +434,7 @@ function resolveCollisionsAndOptimize(
 ): void {
   // Group positions by level
   const positionsByLevel = new Map<number, Array<{ id: string; pos: { x: number; y: number } }>>();
-  
+
   positions.forEach((pos, id) => {
     const level = levels.get(id) || 0;
     if (!positionsByLevel.has(level)) {
@@ -446,12 +448,13 @@ function resolveCollisionsAndOptimize(
     // Sort by x position
     levelNodes.sort((a, b) => a.pos.x - b.pos.x);
 
-    // Detect and resolve overlaps using groupGap as minimum distance
+    // Detect and resolve overlaps - use minimum spacing to avoid collisions
     for (let i = 0; i < levelNodes.length - 1; i++) {
       const current = levelNodes[i];
       const next = levelNodes[i + 1];
-      
-      const minDistance = config.nodeWidth + config.groupGap;
+
+      // Minimum distance to avoid node overlap
+      const minDistance = config.nodeWidth + MIN_NODE_SPACING;
       const actualDistance = next.pos.x - current.pos.x;
 
       if (actualDistance < minDistance) {
