@@ -325,7 +325,6 @@ function calculateLevelPositions(
 
   // Position groups with intelligent spacing
   let currentX = 0;
-  const occupiedRanges: Array<{ start: number; end: number; parentIds: Set<string> }> = [];
 
   groups.forEach((group, groupIndex) => {
     const groupWidth = group.members.length * config.nodeWidth +
@@ -333,22 +332,19 @@ function calculateLevelPositions(
 
     let targetX: number;
 
-    if (group.parentX !== undefined) {
-      // Try to center under parent(s)
+    if (group.parentX !== undefined && groupIndex === 0) {
+      // First group with parents: try to center under parent(s)
       targetX = group.parentX - groupWidth / 2;
+      currentX = targetX;
+    } else if (group.parentX !== undefined && groupIndex > 0) {
+      // Subsequent groups: check if we should align under parents or continue from currentX
+      const idealX = group.parentX - groupWidth / 2;
+      // Use the rightmost position to avoid overlaps
+      targetX = Math.max(currentX, idealX);
     } else {
-      // Position to the right of previous groups
+      // No parents: position to the right of previous groups
       targetX = currentX;
     }
-
-    // Check for collisions and adjust
-    targetX = findNonCollidingPositionWithNuclearFamily(
-      targetX,
-      groupWidth,
-      occupiedRanges,
-      group.parentIds,
-      config
-    );
 
     // Position members in the group
     group.members.forEach((memberId, index) => {
@@ -371,57 +367,14 @@ function calculateLevelPositions(
       if (sameParents) {
         spacingToUse = config.horizontalGap; // Use smaller spacing for siblings
       }
-    }
 
-    // Mark this range as occupied
-    occupiedRanges.push({
-      start: targetX - spacingToUse / 2,
-      end: targetX + groupWidth + spacingToUse / 2,
-      parentIds: group.parentIds
-    });
+      console.log(`Group ${groupIndex} to ${groupIndex + 1}: sameParents=${sameParents}, spacing=${spacingToUse}`);
+    }
 
     currentX = targetX + groupWidth + spacingToUse;
   });
 
   return positions;
-}
-
-/**
- * Find a non-colliding position considering nuclear family grouping
- */
-function findNonCollidingPositionWithNuclearFamily(
-  targetX: number,
-  width: number,
-  occupiedRanges: Array<{ start: number; end: number; parentIds: Set<string> }>,
-  currentParentIds: Set<string>,
-  config: LayoutConfig
-): number {
-  let x = targetX;
-  let attempts = 0;
-  const maxAttempts = 100;
-
-  while (attempts < maxAttempts) {
-    let hasCollision = false;
-
-    for (const range of occupiedRanges) {
-      const overlaps = !(x + width < range.start || x > range.end);
-      if (overlaps) {
-        hasCollision = true;
-        break;
-      }
-    }
-
-    if (!hasCollision) {
-      return x;
-    }
-
-    // Try moving right
-    const rightmostEnd = Math.max(...occupiedRanges.map(r => r.end));
-    x = rightmostEnd + config.horizontalGap / 2;
-    attempts++;
-  }
-
-  return x;
 }
 
 /**
