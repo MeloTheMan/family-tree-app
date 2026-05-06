@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { Member, Relationship, MemberFormData, RelationshipFormData } from '@/lib/types';
+import { Member, Relationship, MemberFormData, RelationshipFormData, MemberWithRelationships } from '@/lib/types';
 import { useMembers } from '@/hooks/useMembers';
 import { useRelationships } from '@/hooks/useRelationships';
 import FamilyTree from './tree/FamilyTree';
 import MemberForm from './members/MemberForm';
+import MemberDetail from './members/MemberDetail';
 import RelationshipForm from './relationships/RelationshipForm';
 import ChangeCredentialsForm from './auth/ChangeCredentialsForm';
 import ConfirmDialog from './ConfirmDialog';
@@ -32,6 +33,7 @@ export default function OwnerTreeView({ onLogout, ownerId }: OwnerTreeViewProps)
 
   const [modalType, setModalType] = useState<ModalType>(null);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [selectedMember, setSelectedMember] = useState<MemberWithRelationships | null>(null);
   const [showChangeCredentials, setShowChangeCredentials] = useState(false);
   const [nuclearFamilyMembers, setNuclearFamilyMembers] = useState<Member[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -168,14 +170,48 @@ export default function OwnerTreeView({ onLogout, ownerId }: OwnerTreeViewProps)
     }
   };
 
-  const handleEditMember = (member: Member) => {
+  const getMemberWithRelationships = (member: Member): MemberWithRelationships => {
+    const parents = relationships
+      .filter(rel => rel.member_id === member.id && rel.relationship_type === 'child')
+      .map(rel => members.find(m => m.id === rel.related_member_id))
+      .filter((m): m is Member => m !== undefined);
+
+    const children = relationships
+      .filter(rel => rel.member_id === member.id && rel.relationship_type === 'parent')
+      .map(rel => members.find(m => m.id === rel.related_member_id))
+      .filter((m): m is Member => m !== undefined);
+
+    const spouses = relationships
+      .filter(rel => rel.member_id === member.id && rel.relationship_type === 'spouse')
+      .map(rel => members.find(m => m.id === rel.related_member_id))
+      .filter((m): m is Member => m !== undefined);
+
+    return {
+      ...member,
+      parents,
+      children,
+      spouses,
+    };
+  };
+
+  const handleMemberClick = (memberId: string) => {
+    const member = members.find(m => m.id === memberId);
+    if (member) {
+      setSelectedMember(getMemberWithRelationships(member));
+    }
+  };
+
+  const handleEditMember = () => {
+    if (!selectedMember) return;
+    
     // Check if member is in nuclear family
-    if (!nuclearFamilyMembers.find(m => m.id === member.id)) {
+    if (!nuclearFamilyMembers.find(m => m.id === selectedMember.id)) {
       toast.error('Vous ne pouvez modifier que les membres de votre famille nucléaire');
       return;
     }
-    setEditingMember(member);
+    setEditingMember(selectedMember);
     setModalType('edit');
+    setSelectedMember(null);
   };
 
   const handleCloseModal = () => {
@@ -187,15 +223,17 @@ export default function OwnerTreeView({ onLogout, ownerId }: OwnerTreeViewProps)
     onLogout();
   };
 
-  const handleDeleteMember = (member: Member) => {
+  const handleDeleteMember = () => {
+    if (!selectedMember) return;
+    
     // Check if member is in nuclear family
-    if (!nuclearFamilyMembers.find(m => m.id === member.id)) {
+    if (!nuclearFamilyMembers.find(m => m.id === selectedMember.id)) {
       toast.error('Vous ne pouvez supprimer que les membres de votre famille nucléaire');
       return;
     }
     
     // Prevent owner from deleting themselves
-    if (member.id === ownerId) {
+    if (selectedMember.id === ownerId) {
       toast.error('Vous ne pouvez pas vous supprimer vous-même');
       return;
     }
@@ -203,12 +241,13 @@ export default function OwnerTreeView({ onLogout, ownerId }: OwnerTreeViewProps)
     setConfirmDialog({
       show: true,
       title: 'Supprimer ce membre ?',
-      message: `Êtes-vous sûr de vouloir supprimer ${member.name} ${member.last_name || ''} ? Cette action supprimera également toutes ses relations, photos et données de position. Cette action est irréversible.`,
+      message: `Êtes-vous sûr de vouloir supprimer ${selectedMember.name} ${selectedMember.last_name || ''} ? Cette action supprimera également toutes ses relations, photos et données de position. Cette action est irréversible.`,
       onConfirm: async () => {
         setConfirmDialog(null);
+        setSelectedMember(null);
         const toastId = toast.loading('Suppression du membre...');
         
-        const result = await deleteMember(member.id);
+        const result = await deleteMember(selectedMember.id);
         if (result) {
           toast.update(toastId, {
             render: 'Membre supprimé avec succès',
@@ -279,10 +318,10 @@ export default function OwnerTreeView({ onLogout, ownerId }: OwnerTreeViewProps)
           <EmptyState onAddMember={() => setModalType('member')} />
         ) : (
           <FamilyTree
-            initialMembers={members}
-            initialRelationships={relationships}
-            onEditMember={handleEditMember}
-            onDeleteMember={handleDeleteMember}
+            members={members}
+            relationships={relationships}
+            onMemberClick={handleMemberClick}
+            readOnly={true}
           />
         )}
       </div>
@@ -331,6 +370,20 @@ export default function OwnerTreeView({ onLogout, ownerId }: OwnerTreeViewProps)
             </div>
           </div>
         </div>
+      )}
+
+      {/* Member detail modal */}
+      {selectedMember && !modalType && (
+        <MemberDetail
+          member={selectedMember}
+          onEdit={handleEditMember}
+          onDelete={handleDeleteMember}
+          onClose={() => setSelectedMember(null)}
+          readOnly={!nuclearFamilyMembers.find(m => m.id === selectedMember.id)}
+          currentUserMemberId={ownerId}
+          allMembers={members}
+          allRelationships={relationships}
+        />
       )}
 
       {/* Change credentials modal */}
