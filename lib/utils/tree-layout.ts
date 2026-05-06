@@ -17,8 +17,8 @@ export interface LayoutConfig {
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   nodeWidth: 200,
   nodeHeight: 120,
-  horizontalGap: 100,  // Spacing between nodes within a group
-  verticalGap: 500,    // Vertical spacing between generations
+  horizontalGap: 300,  // Spacing between siblings within a group
+  verticalGap: 1000,    // Vertical spacing between generations
   groupGap: 2500,       // Spacing between different family groups
 };
 
@@ -327,13 +327,15 @@ function calculateLevelPositions(
   let currentX = 0;
 
   groups.forEach((group, groupIndex) => {
+    // Calculate group width with proper spacing between siblings
+    const siblingSpacing = config.horizontalGap;
     const groupWidth = group.members.length * config.nodeWidth +
-      (group.members.length - 1) * (config.horizontalGap / 3);
+      (group.members.length - 1) * siblingSpacing;
 
     let targetX: number;
 
     if (group.parentX !== undefined && groupIndex === 0) {
-      // First group with parents: try to center under parent(s)
+      // First group with parents: center under parent(s)
       targetX = group.parentX - groupWidth / 2;
       currentX = targetX;
     } else if (group.parentX !== undefined && groupIndex > 0) {
@@ -346,9 +348,9 @@ function calculateLevelPositions(
       targetX = currentX;
     }
 
-    // Position members in the group
+    // Position members in the group with proper spacing
     group.members.forEach((memberId, index) => {
-      const x = targetX + index * (config.nodeWidth + config.horizontalGap / 3);
+      const x = targetX + index * (config.nodeWidth + siblingSpacing);
       positions.set(memberId, { x, y });
     });
 
@@ -365,7 +367,8 @@ function calculateLevelPositions(
         Array.from(group.parentIds).every(pid => nextGroup.parentIds.has(pid));
 
       if (sameParents) {
-        spacingToUse = config.horizontalGap; // Use smaller spacing for siblings
+        // Siblings from same parents: use larger spacing to separate their parent lines
+        spacingToUse = config.horizontalGap * 1.5;
       }
 
       console.log(`Group ${groupIndex} to ${groupIndex + 1}: sameParents=${sameParents}, spacing=${spacingToUse}`);
