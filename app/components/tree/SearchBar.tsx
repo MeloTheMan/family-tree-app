@@ -15,7 +15,10 @@ export default function SearchBar({ members, onResultSelect, onClearHighlight }:
   const [searchResults, setSearchResults] = useState<Member[]>([]);
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
+  const [suggestions, setSuggestions] = useState<Member[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Search members by name or last name
   const searchMembers = useCallback((query: string) => {
@@ -51,7 +54,37 @@ export default function SearchBar({ members, onResultSelect, onClearHighlight }:
 
   // Handle search input change (just update the input value)
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
+    const value = e.target.value;
+    setInputValue(value);
+
+    // Update suggestions as user types
+    if (value.trim()) {
+      const normalizedQuery = value.toLowerCase().trim();
+      const filtered = members.filter(member => {
+        const fullName = `${member.name} ${member.last_name || ''}`.toLowerCase();
+        const firstName = member.name.toLowerCase();
+        const lastName = (member.last_name || '').toLowerCase();
+        
+        return fullName.includes(normalizedQuery) || 
+               firstName.includes(normalizedQuery) || 
+               lastName.includes(normalizedQuery);
+      }).slice(0, 8); // Limit to 8 suggestions
+
+      setSuggestions(filtered);
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = (member: Member) => {
+    const fullName = `${member.name} ${member.last_name || ''}`.trim();
+    setInputValue(fullName);
+    setSearchQuery(fullName);
+    setShowSuggestions(false);
+    searchMembers(fullName);
   };
 
   // Handle Enter key to trigger search
@@ -94,9 +127,28 @@ export default function SearchBar({ members, onResultSelect, onClearHighlight }:
     setSearchResults([]);
     setCurrentResultIndex(0);
     setIsSearching(false);
+    setSuggestions([]);
+    setShowSuggestions(false);
     onClearHighlight();
     inputRef.current?.focus();
   }, [onClearHighlight]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -257,6 +309,39 @@ export default function SearchBar({ members, onResultSelect, onClearHighlight }:
             </button>
           )}
         </div>
+
+        {/* Suggestions Dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div
+            ref={suggestionsRef}
+            className="border-t border-gray-200 max-h-64 overflow-y-auto"
+          >
+            {suggestions.map((member) => (
+              <button
+                key={member.id}
+                onClick={() => handleSuggestionClick(member)}
+                className="w-full px-4 py-2 text-left hover:bg-blue-50 transition-colors flex items-center gap-2 border-b border-gray-100 last:border-b-0"
+              >
+                <svg
+                  className="w-4 h-4 text-gray-400 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <span className="text-gray-900">
+                  {member.name} {member.last_name || ''}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
