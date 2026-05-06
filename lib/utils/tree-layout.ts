@@ -18,8 +18,8 @@ export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   nodeWidth: 200,
   nodeHeight: 120,
   horizontalGap: 100,  // Spacing between nodes within a group
-  verticalGap: 180,    // Vertical spacing between generations
-  groupGap: 250,       // Spacing between different family groups
+  verticalGap: 500,    // Vertical spacing between generations
+  groupGap: 2500,       // Spacing between different family groups
 };
 
 /**
