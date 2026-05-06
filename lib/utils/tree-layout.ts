@@ -19,7 +19,7 @@ export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   nodeHeight: 120,
   horizontalGap: 100,  // Spacing between nodes within a group
   verticalGap: 180,    // Vertical spacing between generations
-  groupGap: 2500,       // Spacing between different family groups
+  groupGap: 250,       // Spacing between different family groups
 };
 
 /**
@@ -251,7 +251,7 @@ function calculateHorizontalPositions(
 }
 
 /**
- * Calculate positions for a single level with spouse grouping
+ * Calculate positions for a single level with spouse grouping and nuclear family detection
  */
 function calculateLevelPositions(
   levelMembers: Member[],
@@ -265,8 +265,8 @@ function calculateLevelPositions(
   const processed = new Set<string>();
   const y = level * (config.nodeHeight + config.verticalGap);
 
-  // Group spouses together
-  const groups: { members: string[]; parentX?: number }[] = [];
+  // Group spouses together and identify their parent groups
+  const groups: { members: string[]; parentIds: Set<string>; parentX?: number }[] = [];
 
   levelMembers.forEach(member => {
     if (processed.has(member.id)) return;
@@ -274,22 +274,32 @@ function calculateLevelPositions(
     const group: string[] = [member.id];
     processed.add(member.id);
 
-    // Add spouses to the same group
+    // Collect parent IDs for this group
+    const parentIds = new Set<string>();
     const rels = relationshipMap.get(member.id);
     if (rels) {
+      rels.parents.forEach(pid => parentIds.add(pid));
+      
+      // Add spouses to the same group
       rels.spouses.forEach(spouseId => {
         const spouseLevel = levels.get(spouseId);
         if (spouseLevel === level && !processed.has(spouseId)) {
           group.push(spouseId);
           processed.add(spouseId);
+          
+          // Add spouse's parents too
+          const spouseRels = relationshipMap.get(spouseId);
+          if (spouseRels) {
+            spouseRels.parents.forEach(pid => parentIds.add(pid));
+          }
         }
       });
     }
 
     // Try to position children below their parents
     let parentX: number | undefined;
-    if (rels && rels.parents.length > 0) {
-      const parentPositions = rels.parents
+    if (parentIds.size > 0) {
+      const parentPositions = Array.from(parentIds)
         .map(parentId => existingPositions.get(parentId))
         .filter(pos => pos !== undefined);
       
@@ -300,7 +310,7 @@ function calculateLevelPositions(
       }
     }
 
-    groups.push({ members: group, parentX });
+    groups.push({ members: group, parentIds, parentX });
   });
 
   // Sort groups: those with parent positions first, then by parent X position
@@ -313,9 +323,9 @@ function calculateLevelPositions(
     return 0;
   });
 
-  // Position groups
+  // Position groups with intelligent spacing
   let currentX = 0;
-  const occupiedRanges: Array<{ start: number; end: number }> = [];
+  const occupiedRanges: Array<{ start: number; end: number; parentIds: Set<string> }> = [];
 
   groups.forEach((group) => {
     const groupWidth = group.members.length * config.nodeWidth + 
@@ -332,7 +342,13 @@ function calculateLevelPositions(
     }
 
     // Check for collisions and adjust
-    targetX = findNonCollidingPosition(targetX, groupWidth, occupiedRanges, config);
+    targetX = findNonCollidingPositionWithNuclearFamily(
+      targetX, 
+      groupWidth, 
+      occupiedRanges, 
+      group.parentIds,
+      config
+    );
 
     // Position members in the group
     group.members.forEach((memberId, index) => {
@@ -340,25 +356,42 @@ function calculateLevelPositions(
       positions.set(memberId, { x, y });
     });
 
-    // Mark this range as occupied with groupGap spacing
+    // Determine spacing for next group
+    // Use groupGap only if this group has different parents than the next
+    const nextGroupIndex = groups.indexOf(group) + 1;
+    const hasNextGroup = nextGroupIndex < groups.length;
+    let spacingToUse = config.groupGap;
+    
+    if (hasNextGroup) {
+      const nextGroup = groups[nextGroupIndex];
+      // Check if groups share the same parents (siblings from same parents)
+      const sharedParents = Array.from(group.parentIds).some(pid => nextGroup.parentIds.has(pid));
+      if (sharedParents) {
+        spacingToUse = config.horizontalGap; // Use smaller spacing for siblings
+      }
+    }
+
+    // Mark this range as occupied
     occupiedRanges.push({
-      start: targetX - config.groupGap / 2,
-      end: targetX + groupWidth + config.groupGap / 2
+      start: targetX - spacingToUse / 2,
+      end: targetX + groupWidth + spacingToUse / 2,
+      parentIds: group.parentIds
     });
 
-    currentX = targetX + groupWidth + config.groupGap;
+    currentX = targetX + groupWidth + spacingToUse;
   });
 
   return positions;
 }
 
 /**
- * Find a non-colliding position for a node or group
+ * Find a non-colliding position considering nuclear family grouping
  */
-function findNonCollidingPosition(
+function findNonCollidingPositionWithNuclearFamily(
   targetX: number,
   width: number,
-  occupiedRanges: Array<{ start: number; end: number }>,
+  occupiedRanges: Array<{ start: number; end: number; parentIds: Set<string> }>,
+  currentParentIds: Set<string>,
   config: LayoutConfig
 ): number {
   let x = targetX;
@@ -366,9 +399,15 @@ function findNonCollidingPosition(
   const maxAttempts = 100;
 
   while (attempts < maxAttempts) {
-    const hasCollision = occupiedRanges.some(range => {
-      return !(x + width < range.start || x > range.end);
-    });
+    let hasCollision = false;
+    
+    for (const range of occupiedRanges) {
+      const overlaps = !(x + width < range.start || x > range.end);
+      if (overlaps) {
+        hasCollision = true;
+        break;
+      }
+    }
 
     if (!hasCollision) {
       return x;
