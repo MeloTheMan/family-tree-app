@@ -72,12 +72,24 @@ Les paramètres de layout sont définis dans `lib/utils/tree-layout.ts` :
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   nodeWidth: 200,        // Largeur d'un nœud
   nodeHeight: 120,       // Hauteur d'un nœud
-  horizontalGap: 100,    // Espacement horizontal minimum
+  horizontalGap: 100,    // Espacement horizontal entre nœuds dans un groupe
   verticalGap: 180,      // Espacement vertical entre générations
+  groupGap: 250,         // Espacement horizontal entre groupes familiaux
 };
 
 const MIN_NODE_SPACING = 80; // Espacement minimum pour éviter les collisions
 ```
+
+### Paramètres d'espacement
+
+- **horizontalGap (100px)** : Espacement entre les nœuds au sein d'un même groupe (par exemple, entre frères et sœurs)
+- **verticalGap (180px)** : Espacement vertical entre les générations (parents → enfants)
+- **groupGap (250px)** : Espacement entre les différentes familles nucléaires/sous-familles
+  - Appliqué entre le dernier enfant d'un groupe et le premier enfant du groupe suivant
+  - Permet de distinguer clairement les différentes branches familiales
+  - Valable pour toutes les générations
+
+Le **groupGap** est particulièrement important car il crée une séparation visuelle claire entre les différentes familles nucléaires, facilitant l'identification des relations parent-enfant.
 
 ## Algorithme
 
@@ -94,6 +106,7 @@ const MIN_NODE_SPACING = 80; // Espacement minimum pour éviter les collisions
 3. **Positionnement horizontal**
    - Groupement des conjoints
    - Positionnement sous les parents quand possible
+   - Application de l'espacement entre groupes (groupGap)
    - Détection et résolution des collisions
    - Optimisation de l'espacement
 
@@ -112,6 +125,7 @@ const MIN_NODE_SPACING = 80; // Espacement minimum pour éviter les collisions
 - **Adaptatif** : S'ajuste automatiquement aux nouvelles relations
 - **Optimisé** : Utilise l'espace de manière efficace
 - **Flexible** : Permet toujours le déplacement manuel des nœuds
+- **Clair** : Séparation visuelle distincte entre les groupes familiaux grâce au groupGap
 
 ## Limitations
 

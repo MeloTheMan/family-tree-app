@@ -6,8 +6,9 @@ import { Member, Relationship, TreeNode, TreeEdge } from '../types';
 export interface LayoutConfig {
   nodeWidth: number;      // Width of each node in pixels
   nodeHeight: number;     // Height of each node in pixels
-  horizontalGap: number;  // Horizontal spacing between nodes
+  horizontalGap: number;  // Horizontal spacing between nodes within a group
   verticalGap: number;    // Vertical spacing between generations
+  groupGap: number;       // Horizontal spacing between family groups (nuclear families)
 }
 
 /**
@@ -16,8 +17,9 @@ export interface LayoutConfig {
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   nodeWidth: 200,
   nodeHeight: 120,
-  horizontalGap: 100,  // Minimum horizontal spacing between nodes
+  horizontalGap: 100,  // Spacing between nodes within a group
   verticalGap: 180,    // Vertical spacing between generations
+  groupGap: 250,       // Spacing between different family groups
 };
 
 /**
@@ -315,7 +317,7 @@ function calculateLevelPositions(
   let currentX = 0;
   const occupiedRanges: Array<{ start: number; end: number }> = [];
 
-  groups.forEach((group, groupIndex) => {
+  groups.forEach((group) => {
     const groupWidth = group.members.length * config.nodeWidth + 
                       (group.members.length - 1) * (config.horizontalGap / 3);
     
@@ -338,13 +340,13 @@ function calculateLevelPositions(
       positions.set(memberId, { x, y });
     });
 
-    // Mark this range as occupied
+    // Mark this range as occupied with groupGap spacing
     occupiedRanges.push({
-      start: targetX - MIN_NODE_SPACING,
-      end: targetX + groupWidth + MIN_NODE_SPACING
+      start: targetX - config.groupGap / 2,
+      end: targetX + groupWidth + config.groupGap / 2
     });
 
-    currentX = targetX + groupWidth + config.horizontalGap;
+    currentX = targetX + groupWidth + config.groupGap;
   });
 
   return positions;
@@ -401,16 +403,16 @@ function resolveCollisionsAndOptimize(
   });
 
   // Check and resolve collisions within each level
-  positionsByLevel.forEach((levelNodes, level) => {
+  positionsByLevel.forEach((levelNodes) => {
     // Sort by x position
     levelNodes.sort((a, b) => a.pos.x - b.pos.x);
 
-    // Detect and resolve overlaps
+    // Detect and resolve overlaps using groupGap as minimum distance
     for (let i = 0; i < levelNodes.length - 1; i++) {
       const current = levelNodes[i];
       const next = levelNodes[i + 1];
       
-      const minDistance = config.nodeWidth + MIN_NODE_SPACING;
+      const minDistance = config.nodeWidth + config.groupGap;
       const actualDistance = next.pos.x - current.pos.x;
 
       if (actualDistance < minDistance) {
