@@ -51,6 +51,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
   const [showDetail, setShowDetail] = useState(false);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [hasInitializedView, setHasInitializedView] = useState(false);
+  const [previousRelationshipCount, setPreviousRelationshipCount] = useState(0);
   const nodesInitialized = useNodesInitialized();
   const { fitView, getNode, setCenter } = useReactFlow();
   const { positions, savePositions } = usePositions();
@@ -65,6 +66,37 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       }, 100);
     }
   }, [nodesInitialized, hasInitializedView, fitView]);
+
+  // Auto-apply layout when new relationships are added
+  useEffect(() => {
+    if (actualRelationships.length > previousRelationshipCount && previousRelationshipCount > 0) {
+      console.log('New relationship detected, applying auto-layout...');
+      handleAutoLayout();
+    }
+    setPreviousRelationshipCount(actualRelationships.length);
+  }, [actualRelationships.length]);
+
+  // Handle auto-layout
+  const handleAutoLayout = useCallback(() => {
+    const { nodes: layoutNodes } = calculateTreeLayout(actualMembers, actualRelationships);
+    
+    // Create new positions map from layout
+    const newPositions = new Map<string, { x: number; y: number }>();
+    layoutNodes.forEach(node => {
+      newPositions.set(node.id, node.position);
+    });
+
+    // Save positions to database
+    savePositions(newPositions).then(() => {
+      console.log('Auto-layout applied and saved');
+      // Fit view after layout
+      setTimeout(() => {
+        fitView({ padding: 0.2, duration: 800 });
+      }, 100);
+    }).catch(err => {
+      console.error('Failed to save auto-layout positions:', err);
+    });
+  }, [actualMembers, actualRelationships, savePositions, fitView]);
 
   // Calculate tree layout - memoized to prevent recalculation
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(() => {
@@ -302,7 +334,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
           size={1} 
           className="opacity-50" 
         />
-        <TreeControls />
+        <TreeControls onAutoLayout={!readOnly ? handleAutoLayout : undefined} />
         <SearchBar 
           members={actualMembers}
           onResultSelect={handleSearchResultSelect}

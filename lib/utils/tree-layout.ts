@@ -16,9 +16,14 @@ export interface LayoutConfig {
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   nodeWidth: 200,
   nodeHeight: 120,
-  horizontalGap: 150,  // Increased from 100 to prevent edge overlap
-  verticalGap: 200,    // Increased from 150 to prevent edge overlap
+  horizontalGap: 100,  // Minimum horizontal spacing between nodes
+  verticalGap: 180,    // Vertical spacing between generations
 };
+
+/**
+ * Minimum spacing to maintain between nodes for collision detection
+ */
+const MIN_NODE_SPACING = 80;
 
 /**
  * Calculate the tree layout for family members and their relationships
@@ -27,12 +32,14 @@ export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
  * @param members - Array of all family members
  * @param relationships - Array of all relationships between members
  * @param config - Optional layout configuration (uses defaults if not provided)
+ * @param existingPositions - Optional existing positions to preserve manual adjustments
  * @returns Object containing positioned nodes and edges for visualization
  */
 export function calculateTreeLayout(
   members: Member[],
   relationships: Relationship[],
-  config: LayoutConfig = DEFAULT_LAYOUT_CONFIG
+  config: LayoutConfig = DEFAULT_LAYOUT_CONFIG,
+  existingPositions?: Map<string, { x: number; y: number }>
 ): { nodes: TreeNode[]; edges: TreeEdge[] } {
   if (members.length === 0) {
     return { nodes: [], edges: [] };
@@ -59,6 +66,47 @@ export function calculateTreeLayout(
   const edges = createTreeEdges(relationships);
 
   return { nodes, edges };
+}
+
+/**
+ * Apply automatic layout to specific members while preserving others
+ * Useful when adding new relationships
+ */
+export function applyAutoLayoutToNewMembers(
+  members: Member[],
+  relationships: Relationship[],
+  existingPositions: Map<string, { x: number; y: number }>,
+  newMemberIds: string[],
+  config: LayoutConfig = DEFAULT_LAYOUT_CONFIG
+): Map<string, { x: number; y: number }> {
+  // Calculate full layout
+  const { nodes } = calculateTreeLayout(members, relationships, config);
+  
+  // Create new positions map
+  const newPositions = new Map(existingPositions);
+  
+  // Update positions only for new members and their immediate family
+  const affectedIds = new Set(newMemberIds);
+  
+  // Add related members to affected set
+  const relationshipMap = buildRelationshipMap(members, relationships);
+  newMemberIds.forEach(id => {
+    const rels = relationshipMap.get(id);
+    if (rels) {
+      rels.parents.forEach(pid => affectedIds.add(pid));
+      rels.children.forEach(cid => affectedIds.add(cid));
+      rels.spouses.forEach(sid => affectedIds.add(sid));
+    }
+  });
+  
+  // Apply new positions to affected members
+  nodes.forEach(node => {
+    if (affectedIds.has(node.id)) {
+      newPositions.set(node.id, node.position);
+    }
+  });
+  
+  return newPositions;
 }
 
 /**
@@ -158,7 +206,7 @@ function assignLevels(
 
 /**
  * Calculate horizontal positions for members within their generation level
- * Groups spouses together and spaces members evenly
+ * Uses intelligent spacing with collision detection and automatic repositioning
  */
 function calculateHorizontalPositions(
   members: Member[],
@@ -178,53 +226,223 @@ function calculateHorizontalPositions(
     membersByLevel.get(level)!.push(member);
   });
 
-  // Process each level
+  // Process each level with intelligent positioning
   membersByLevel.forEach((levelMembers, level) => {
-    // Group spouses together
-    const processed = new Set<string>();
-    const groups: string[][] = [];
-
-    levelMembers.forEach(member => {
-      if (processed.has(member.id)) return;
-
-      const group = [member.id];
-      processed.add(member.id);
-
-      // Add spouses to the same group
-      const rels = relationshipMap.get(member.id);
-      if (rels) {
-        rels.spouses.forEach(spouseId => {
-          const spouseLevel = levels.get(spouseId);
-          if (spouseLevel === level && !processed.has(spouseId)) {
-            group.push(spouseId);
-            processed.add(spouseId);
-          }
-        });
-      }
-
-      groups.push(group);
-    });
-
-    // Calculate positions for this level
-    const y = level * (config.nodeHeight + config.verticalGap);
-    const totalWidth = groups.length * config.nodeWidth + (groups.length - 1) * config.horizontalGap;
-    let currentX = -totalWidth / 2;
-
-    groups.forEach(group => {
-      // For spouse groups, position them side by side
-      const groupWidth = group.length * config.nodeWidth + (group.length - 1) * (config.horizontalGap / 2);
-      let groupX = currentX;
-
-      group.forEach((memberId, index) => {
-        const x = groupX + index * (config.nodeWidth + config.horizontalGap / 2);
-        positions.set(memberId, { x, y });
-      });
-
-      currentX += groupWidth + config.horizontalGap;
+    const levelPositions = calculateLevelPositions(
+      levelMembers,
+      level,
+      relationshipMap,
+      levels,
+      config,
+      positions
+    );
+    
+    levelPositions.forEach((pos, memberId) => {
+      positions.set(memberId, pos);
     });
   });
 
+  // Resolve collisions and optimize spacing
+  resolveCollisionsAndOptimize(positions, levels, config);
+
   return positions;
+}
+
+/**
+ * Calculate positions for a single level with spouse grouping
+ */
+function calculateLevelPositions(
+  levelMembers: Member[],
+  level: number,
+  relationshipMap: Map<string, { parents: string[]; children: string[]; spouses: string[] }>,
+  levels: Map<string, number>,
+  config: LayoutConfig,
+  existingPositions: Map<string, { x: number; y: number }>
+): Map<string, { x: number; y: number }> {
+  const positions = new Map<string, { x: number; y: number }>();
+  const processed = new Set<string>();
+  const y = level * (config.nodeHeight + config.verticalGap);
+
+  // Group spouses together
+  const groups: { members: string[]; parentX?: number }[] = [];
+
+  levelMembers.forEach(member => {
+    if (processed.has(member.id)) return;
+
+    const group: string[] = [member.id];
+    processed.add(member.id);
+
+    // Add spouses to the same group
+    const rels = relationshipMap.get(member.id);
+    if (rels) {
+      rels.spouses.forEach(spouseId => {
+        const spouseLevel = levels.get(spouseId);
+        if (spouseLevel === level && !processed.has(spouseId)) {
+          group.push(spouseId);
+          processed.add(spouseId);
+        }
+      });
+    }
+
+    // Try to position children below their parents
+    let parentX: number | undefined;
+    if (rels && rels.parents.length > 0) {
+      const parentPositions = rels.parents
+        .map(parentId => existingPositions.get(parentId))
+        .filter(pos => pos !== undefined);
+      
+      if (parentPositions.length > 0) {
+        // Calculate average parent position
+        const avgX = parentPositions.reduce((sum, pos) => sum + pos!.x, 0) / parentPositions.length;
+        parentX = avgX;
+      }
+    }
+
+    groups.push({ members: group, parentX });
+  });
+
+  // Sort groups: those with parent positions first, then by parent X position
+  groups.sort((a, b) => {
+    if (a.parentX !== undefined && b.parentX === undefined) return -1;
+    if (a.parentX === undefined && b.parentX !== undefined) return 1;
+    if (a.parentX !== undefined && b.parentX !== undefined) {
+      return a.parentX - b.parentX;
+    }
+    return 0;
+  });
+
+  // Position groups
+  let currentX = 0;
+  const occupiedRanges: Array<{ start: number; end: number }> = [];
+
+  groups.forEach((group, groupIndex) => {
+    const groupWidth = group.members.length * config.nodeWidth + 
+                      (group.members.length - 1) * (config.horizontalGap / 3);
+    
+    let targetX: number;
+
+    if (group.parentX !== undefined) {
+      // Try to center under parent(s)
+      targetX = group.parentX - groupWidth / 2;
+    } else {
+      // Position to the right of previous groups
+      targetX = currentX;
+    }
+
+    // Check for collisions and adjust
+    targetX = findNonCollidingPosition(targetX, groupWidth, occupiedRanges, config);
+
+    // Position members in the group
+    group.members.forEach((memberId, index) => {
+      const x = targetX + index * (config.nodeWidth + config.horizontalGap / 3);
+      positions.set(memberId, { x, y });
+    });
+
+    // Mark this range as occupied
+    occupiedRanges.push({
+      start: targetX - MIN_NODE_SPACING,
+      end: targetX + groupWidth + MIN_NODE_SPACING
+    });
+
+    currentX = targetX + groupWidth + config.horizontalGap;
+  });
+
+  return positions;
+}
+
+/**
+ * Find a non-colliding position for a node or group
+ */
+function findNonCollidingPosition(
+  targetX: number,
+  width: number,
+  occupiedRanges: Array<{ start: number; end: number }>,
+  config: LayoutConfig
+): number {
+  let x = targetX;
+  let attempts = 0;
+  const maxAttempts = 100;
+
+  while (attempts < maxAttempts) {
+    const hasCollision = occupiedRanges.some(range => {
+      return !(x + width < range.start || x > range.end);
+    });
+
+    if (!hasCollision) {
+      return x;
+    }
+
+    // Try moving right
+    const rightmostEnd = Math.max(...occupiedRanges.map(r => r.end));
+    x = rightmostEnd + config.horizontalGap / 2;
+    attempts++;
+  }
+
+  return x;
+}
+
+/**
+ * Resolve collisions and optimize spacing across all levels
+ */
+function resolveCollisionsAndOptimize(
+  positions: Map<string, { x: number; y: number }>,
+  levels: Map<string, number>,
+  config: LayoutConfig
+): void {
+  // Group positions by level
+  const positionsByLevel = new Map<number, Array<{ id: string; pos: { x: number; y: number } }>>();
+  
+  positions.forEach((pos, id) => {
+    const level = levels.get(id) || 0;
+    if (!positionsByLevel.has(level)) {
+      positionsByLevel.set(level, []);
+    }
+    positionsByLevel.get(level)!.push({ id, pos });
+  });
+
+  // Check and resolve collisions within each level
+  positionsByLevel.forEach((levelNodes, level) => {
+    // Sort by x position
+    levelNodes.sort((a, b) => a.pos.x - b.pos.x);
+
+    // Detect and resolve overlaps
+    for (let i = 0; i < levelNodes.length - 1; i++) {
+      const current = levelNodes[i];
+      const next = levelNodes[i + 1];
+      
+      const minDistance = config.nodeWidth + MIN_NODE_SPACING;
+      const actualDistance = next.pos.x - current.pos.x;
+
+      if (actualDistance < minDistance) {
+        // Push subsequent nodes to the right
+        const shift = minDistance - actualDistance;
+        for (let j = i + 1; j < levelNodes.length; j++) {
+          const node = levelNodes[j];
+          node.pos.x += shift;
+          positions.set(node.id, node.pos);
+        }
+      }
+    }
+  });
+
+  // Center the entire tree
+  centerTree(positions);
+}
+
+/**
+ * Center the tree around x=0
+ */
+function centerTree(positions: Map<string, { x: number; y: number }>): void {
+  if (positions.size === 0) return;
+
+  const xPositions = Array.from(positions.values()).map(pos => pos.x);
+  const minX = Math.min(...xPositions);
+  const maxX = Math.max(...xPositions);
+  const centerOffset = -(minX + maxX) / 2;
+
+  positions.forEach((pos, id) => {
+    positions.set(id, { x: pos.x + centerOffset, y: pos.y });
+  });
 }
 
 /**
