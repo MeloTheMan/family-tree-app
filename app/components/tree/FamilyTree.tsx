@@ -50,19 +50,21 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
   const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [nodes, setNodes] = useState<Node[]>([]);
+  const [hasInitializedView, setHasInitializedView] = useState(false);
   const nodesInitialized = useNodesInitialized();
   const { fitView, getNode, setCenter } = useReactFlow();
   const { positions, savePositions } = usePositions();
 
-  // Force fitView when nodes are initialized
+  // Force fitView only on first initialization
   useEffect(() => {
-    if (nodesInitialized) {
+    if (nodesInitialized && !hasInitializedView) {
       console.log('Nodes initialized! Fitting view...');
       setTimeout(() => {
         fitView({ padding: 0.2, duration: 800 });
+        setHasInitializedView(true);
       }, 100);
     }
-  }, [nodesInitialized, fitView]);
+  }, [nodesInitialized, hasInitializedView, fitView]);
 
   // Calculate tree layout - memoized to prevent recalculation
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(() => {
