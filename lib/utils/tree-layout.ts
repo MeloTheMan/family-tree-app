@@ -9,6 +9,7 @@ export interface LayoutConfig {
   horizontalGap: number;  // Horizontal spacing between nodes within a group
   verticalGap: number;    // Vertical spacing between generations
   groupGap: number;       // Horizontal spacing between family groups (nuclear families)
+  siblingGroupVerticalOffset: number; // Vertical offset between sibling groups from different parents
 }
 
 /**
@@ -17,9 +18,10 @@ export interface LayoutConfig {
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   nodeWidth: 200,
   nodeHeight: 120,
-  horizontalGap: 300,  // Spacing between siblings within a group
-  verticalGap: 1000,    // Vertical spacing between generations
-  groupGap: 2500,       // Spacing between different family groups
+  horizontalGap: 100,  // Base spacing between siblings (multiplied by children count)
+  verticalGap: 180,    // Vertical spacing between generations
+  groupGap: 250,       // Spacing between different family groups
+  siblingGroupVerticalOffset: 40, // Vertical offset for different parent groups
 };
 
 /**
@@ -323,14 +325,32 @@ function calculateLevelPositions(
     return 0;
   });
 
-  // Position groups with intelligent spacing
+  // Position groups with intelligent spacing and vertical offsets
   let currentX = 0;
+  let verticalOffsetIndex = 0;
 
   groups.forEach((group, groupIndex) => {
-    // Calculate group width with proper spacing between siblings
-    const siblingSpacing = config.horizontalGap;
-    const groupWidth = group.members.length * config.nodeWidth +
-      (group.members.length - 1) * siblingSpacing;
+    // Calculate spacing between siblings based on their children count
+    const memberSpacings: number[] = [];
+
+    group.members.forEach((memberId, index) => {
+      const memberRels = relationshipMap.get(memberId);
+      const childrenCount = memberRels?.children.length || 0;
+
+      // Dynamic spacing: more children = more space needed
+      // Use horizontalGap as base, multiply by max(1, childrenCount)
+      const spacing = childrenCount > 0
+        ? config.horizontalGap * Math.max(1, childrenCount)
+        : config.horizontalGap;
+
+      memberSpacings.push(spacing);
+    });
+
+    // Calculate group width with dynamic spacing
+    let groupWidth = group.members.length * config.nodeWidth;
+    for (let i = 0; i < group.members.length - 1; i++) {
+      groupWidth += memberSpacings[i];
+    }
 
     let targetX: number;
 
@@ -341,20 +361,13 @@ function calculateLevelPositions(
     } else if (group.parentX !== undefined && groupIndex > 0) {
       // Subsequent groups: check if we should align under parents or continue from currentX
       const idealX = group.parentX - groupWidth / 2;
-      // Use the rightmost position to avoid overlaps
       targetX = Math.max(currentX, idealX);
     } else {
       // No parents: position to the right of previous groups
       targetX = currentX;
     }
 
-    // Position members in the group with proper spacing
-    group.members.forEach((memberId, index) => {
-      const x = targetX + index * (config.nodeWidth + siblingSpacing);
-      positions.set(memberId, { x, y });
-    });
-
-    // Determine spacing for next group
+    // Determine spacing and vertical offset for next group
     const hasNextGroup = groupIndex + 1 < groups.length;
     let spacingToUse = config.groupGap;
 
@@ -367,12 +380,28 @@ function calculateLevelPositions(
         Array.from(group.parentIds).every(pid => nextGroup.parentIds.has(pid));
 
       if (sameParents) {
-        // Siblings from same parents: use larger spacing to separate their parent lines
-        spacingToUse = config.horizontalGap * 1.5;
+        spacingToUse = config.horizontalGap;
+      } else {
+        verticalOffsetIndex++;
       }
 
-      console.log(`Group ${groupIndex} to ${groupIndex + 1}: sameParents=${sameParents}, spacing=${spacingToUse}`);
+      console.log(`Group ${groupIndex} to ${groupIndex + 1}: sameParents=${sameParents}, spacing=${spacingToUse}, verticalOffset=${verticalOffsetIndex}`);
     }
+
+    // Calculate Y position with vertical offset for different parent groups
+    const yOffset = verticalOffsetIndex * config.siblingGroupVerticalOffset;
+    const groupY = y + yOffset;
+
+    // Position members in the group with dynamic spacing
+    let currentMemberX = targetX;
+    group.members.forEach((memberId, index) => {
+      positions.set(memberId, { x: currentMemberX, y: groupY });
+
+      // Add node width and dynamic spacing for next member
+      if (index < group.members.length - 1) {
+        currentMemberX += config.nodeWidth + memberSpacings[index];
+      }
+    });
 
     currentX = targetX + groupWidth + spacingToUse;
   });
