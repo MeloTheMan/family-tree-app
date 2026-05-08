@@ -350,6 +350,32 @@ function analyzeRelationshipPath(
   }
 
   /**
+ * ========================================================
+ * GRAND UNCLE / AUNT
+ * ========================================================
+ */
+
+if (pattern === 'child-child-child-parent') {
+
+  return hasSpouse
+    ? 'Grand-oncle / Grande-tante par alliance'
+    : 'Grand-oncle / Grande-tante';
+}
+
+/**
+ * ========================================================
+ * GRAND NEPHEW / NIECE
+ * ========================================================
+ */
+
+if (pattern === 'child-parent-parent-parent') {
+
+  return hasSpouse
+    ? 'Petit-neveu / Petite-nièce par alliance'
+    : 'Petit-neveu / Petite-nièce';
+}
+
+  /**
    * ========================================================
    * GREAT GRANDPARENTS
    * ========================================================
@@ -362,6 +388,19 @@ function analyzeRelationshipPath(
   if (pattern === 'parent-parent-parent') {
     return 'Arrière-petit-enfant';
   }
+
+  /**
+   * ========================================================
+   * GENERIC UNCLE / AUNT
+   * ========================================================
+   */
+
+  if (pattern === 'child-child-child-parent-parent') {
+
+  return hasSpouse
+    ? 'Oncle / Tante éloigné par alliance'
+    : 'Oncle / Tante éloigné';
+}
 
   /**
    * ========================================================
