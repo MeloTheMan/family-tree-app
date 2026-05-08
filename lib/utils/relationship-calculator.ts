@@ -402,6 +402,19 @@ if (pattern === 'child-parent-parent-parent') {
     : 'Oncle / Tante éloigné';
 }
 
+/**
+   * ========================================================
+   * GENERIC NEPHEW / NIECE
+   * ========================================================
+   */
+
+  if (pattern === 'child-child-parent-parent-parent') {
+
+    return hasSpouse
+    ? 'Neveu / Nièce éloigné par alliance'
+    : 'Neveu / Nièce éloigné';
+}
+
   /**
    * ========================================================
    * GENERIC ANCESTORS
