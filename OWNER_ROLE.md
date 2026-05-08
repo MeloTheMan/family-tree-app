@@ -19,6 +19,17 @@ Pour un Owner donné, la famille nucléaire comprend :
 - **Ses frères et sœurs** (partageant au moins un parent)
 - **Son/ses conjoint(s)** (relations de type spouse)
 - **Ses enfants** (relations parent-enfant où le Owner est parent)
+- **Les membres orphelins** (membres sans aucune relation) - Cela permet à l'Owner de créer la première relation pour un membre nouvellement ajouté
+
+### Gestion des membres orphelins
+
+Un membre est considéré comme "orphelin" s'il n'a aucune relation (ni parent, ni enfant, ni conjoint) avec aucun autre membre de l'arbre. Ces membres orphelins sont automatiquement inclus dans la famille nucléaire de l'Owner pour permettre :
+
+1. **Création de la première relation** : L'Owner peut ajouter un nouveau membre et immédiatement créer une relation avec lui
+2. **Édition avant relation** : L'Owner peut corriger les informations d'un membre nouvellement créé avant de le relier
+3. **Suppression si erreur** : L'Owner peut supprimer un membre créé par erreur avant qu'il ne soit relié
+
+**Note importante** : Dès qu'un membre orphelin est relié à quelqu'un, il ne sera plus automatiquement dans la famille nucléaire de tous les Owners. Il ne restera modifiable que par les Owners dont il fait réellement partie de la famille nucléaire.
 
 ## Permissions du Owner
 
@@ -81,11 +92,12 @@ export function calculateNuclearFamily(
 ): NuclearFamily
 ```
 
-**Algorithme** :
+### Algorithme** :
 1. Trouve les parents du Owner
 2. Trouve les frères/sœurs (enfants des mêmes parents)
 3. Trouve les conjoints (relations de type spouse)
 4. Trouve les enfants (relations parent-enfant)
+5. Ajoute les membres orphelins (sans aucune relation) pour permettre la création de la première relation
 
 ### Validation des permissions
 
@@ -131,6 +143,15 @@ if (!nuclearFamilyMembers.find(m => m.id === member.id)) {
 ### Exemple 1 : Ajout d'un enfant
 Un Owner peut ajouter un nouveau membre et créer une relation parent-enfant avec lui-même.
 
+**Flux** :
+1. Owner clique sur "Ajouter un membre"
+2. Remplit le formulaire (nom, prénom, date de naissance, etc.)
+3. Le membre est créé sans relation (orphelin)
+4. Le membre apparaît dans la famille nucléaire (car orphelin)
+5. Owner clique sur "Ajouter une relation"
+6. Sélectionne lui-même comme parent et le nouveau membre comme enfant
+7. La relation est créée, le membre reste dans la famille nucléaire
+
 ### Exemple 2 : Modification d'un parent
 Un Owner peut corriger les informations de son père ou de sa mère.
 
@@ -139,6 +160,12 @@ Un Owner peut ajouter son conjoint et créer la relation spouse.
 
 ### Exemple 4 : Tentative de modification d'un cousin
 Le système bloque l'action car le cousin n'est pas dans la famille nucléaire.
+
+### Exemple 5 : Membre créé par erreur
+1. Owner ajoute un membre par erreur
+2. Le membre est orphelin, donc modifiable
+3. Owner peut le supprimer immédiatement
+4. Aucune relation n'a été créée, pas d'impact sur l'arbre
 
 ## Sécurité
 

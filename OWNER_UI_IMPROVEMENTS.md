@@ -156,6 +156,9 @@ Pour un Owner donné, peuvent être modifiés/supprimés :
 - ✅ Ses frères et sœurs
 - ✅ Son/ses conjoint(s)
 - ✅ Ses enfants
+- ✅ **Les membres orphelins** (sans aucune relation) - permet de créer la première relation
+
+**Note** : Un membre orphelin est un membre qui n'a aucune relation avec personne. Cela permet à l'Owner de créer un membre, puis de le relier. Dès qu'une relation est créée, le membre n'est plus orphelin et les permissions normales s'appliquent.
 
 ### Membres en lecture seule
 
@@ -213,14 +216,38 @@ L'interface Owner reprend maintenant les mêmes patterns que le rôle User :
 - Essayer de modifier un membre de la famille nucléaire → Succès
 - Essayer de modifier un membre hors famille nucléaire → Erreur
 - Essayer de se supprimer soi-même → Erreur
+- Ajouter un nouveau membre (orphelin) → Modifiable
+- Créer une relation avec le membre → Reste modifiable si dans la famille nucléaire
+
+### Test 5 : Membres orphelins
+- Ajouter un nouveau membre sans relation
+- Vérifier qu'il est modifiable (boutons visibles)
+- Créer une relation avec ce membre
+- Vérifier qu'il reste modifiable si dans la famille nucléaire
+- Se connecter avec un autre Owner
+- Vérifier que le membre n'est plus modifiable (sauf s'il fait partie de sa famille nucléaire)
 
 ## Fichiers concernés
 
-- ✅ `app/components/OwnerTreeView.tsx` : Logique principale
+- ✅ `app/components/OwnerTreeView.tsx` : Logique principale + gestion des orphelins
 - ✅ `app/components/members/MemberDetail.tsx` : Modale de détail (réutilisée)
 - ✅ `lib/utils/relationship-calculator.ts` : Calcul des relations (réutilisé)
 - ✅ `lib/utils/nuclear-family.ts` : Calcul famille nucléaire (réutilisé)
 - ✅ `lib/types.ts` : Types TypeScript (MemberWithRelationships)
+- 📄 `OWNER_ORPHAN_MEMBERS.md` : Documentation de la gestion des orphelins
+
+## Gestion des membres orphelins
+
+Un problème important a été résolu : lorsqu'un Owner ajoute un nouveau membre, celui-ci n'a initialement aucune relation. Sans solution, l'Owner ne pourrait pas créer de relation avec ce membre (problème de "chicken and egg").
+
+**Solution implémentée** : Les membres sans aucune relation (orphelins) sont automatiquement inclus dans la famille nucléaire de tous les Owners, permettant :
+- De modifier leurs informations
+- De créer la première relation avec eux
+- De les supprimer s'ils ont été créés par erreur
+
+Dès qu'une relation est créée, le membre n'est plus orphelin et les permissions normales s'appliquent.
+
+Voir `OWNER_ORPHAN_MEMBERS.md` pour plus de détails sur cette fonctionnalité.
 
 ## Prochaines étapes possibles
 

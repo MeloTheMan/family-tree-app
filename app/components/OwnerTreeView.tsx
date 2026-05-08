@@ -83,6 +83,16 @@ export default function OwnerTreeView({ onLogout, ownerId }: OwnerTreeViewProps)
           familySet.add(rel.related_member_id);
         });
         
+        // Add orphan members (members without any relationships)
+        // This allows the owner to create the first relationship for newly added members
+        const orphanMembers = members.filter(member => {
+          const hasRelationship = relationships.some(
+            r => r.member_id === member.id || r.related_member_id === member.id
+          );
+          return !hasRelationship && member.id !== ownerId;
+        });
+        orphanMembers.forEach(orphan => familySet.add(orphan.id));
+        
         const nuclearMembers = members.filter(m => familySet.has(m.id));
         setNuclearFamilyMembers(nuclearMembers);
       }
