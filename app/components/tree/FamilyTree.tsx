@@ -52,9 +52,10 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
   const [nodes, setNodes] = useState<Node[]>([]);
   const [hasInitializedView, setHasInitializedView] = useState(false);
   const [previousRelationshipCount, setPreviousRelationshipCount] = useState(0);
+  const [useCalculatedPositions, setUseCalculatedPositions] = useState(false);
   const nodesInitialized = useNodesInitialized();
   const { fitView, getNode, setCenter } = useReactFlow();
-  const { positions, savePositions } = usePositions();
+  const { positions, savePositions, refetch } = usePositions();
 
   // Force fitView only on first initialization
   useEffect(() => {
@@ -67,15 +68,6 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
     }
   }, [nodesInitialized, hasInitializedView, fitView]);
 
-  // Auto-apply layout when new relationships are added
-  useEffect(() => {
-    if (actualRelationships.length > previousRelationshipCount && previousRelationshipCount > 0) {
-      console.log('New relationship detected, applying auto-layout...');
-      handleAutoLayout();
-    }
-    setPreviousRelationshipCount(actualRelationships.length);
-  }, [actualRelationships.length]);
-
   // Handle auto-layout
   const handleAutoLayout = useCallback(() => {
     const { nodes: layoutNodes } = calculateTreeLayout(actualMembers, actualRelationships);
@@ -86,17 +78,35 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       newPositions.set(node.id, node.position);
     });
 
+    // Set flag to use calculated positions instead of saved ones
+    setUseCalculatedPositions(true);
+
     // Save positions to database
     savePositions(newPositions).then(() => {
       console.log('Auto-layout applied and saved');
+      // Refetch positions to ensure we have the latest
+      return refetch();
+    }).then(() => {
+      // Reset flag after positions are refreshed
+      setUseCalculatedPositions(false);
       // Fit view after layout
       setTimeout(() => {
         fitView({ padding: 0.2, duration: 800 });
       }, 100);
     }).catch(err => {
       console.error('Failed to save auto-layout positions:', err);
+      setUseCalculatedPositions(false);
     });
-  }, [actualMembers, actualRelationships, savePositions, fitView]);
+  }, [actualMembers, actualRelationships, savePositions, refetch, fitView]);
+
+  // Auto-apply layout when new relationships are added
+  useEffect(() => {
+    if (actualRelationships.length > previousRelationshipCount && previousRelationshipCount > 0) {
+      console.log('New relationship detected, applying auto-layout...');
+      handleAutoLayout();
+    }
+    setPreviousRelationshipCount(actualRelationships.length);
+  }, [actualRelationships.length, previousRelationshipCount, handleAutoLayout]);
 
   // Calculate tree layout - memoized to prevent recalculation
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(() => {
@@ -125,8 +135,8 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
     return layoutNodes.map((node) => ({
       id: node.id,
       type: 'member',
-      // Use saved position from database if available, otherwise use calculated position
-      position: positions.get(node.id) || node.position,
+      // Use calculated position during auto-layout, otherwise use saved position if available
+      position: useCalculatedPositions ? node.position : (positions.get(node.id) || node.position),
       data: {
         ...node.data,
         isSelected: node.id === selectedMemberId,
@@ -139,7 +149,7 @@ const FamilyTreeContent = memo(function FamilyTreeContent({
       zIndex: 10, // Nodes above edges
       draggable: !readOnly, // Enable dragging only if not read-only
     }));
-  }, [layoutNodes, selectedMemberId, highlightedMemberId, handleNodeClick, positions, readOnly]);
+  }, [layoutNodes, selectedMemberId, highlightedMemberId, handleNodeClick, positions, readOnly, useCalculatedPositions]);
 
   // Update nodes when layout changes or selection changes
   useEffect(() => {
