@@ -198,7 +198,6 @@ function analyzeComplexRelationship(
     // Count generations up (child) and down (parent)
     let generationsUp = 0;
     let generationsDown = 0;
-    let isSibling = false;
 
     for (let i = 0; i < bloodPath.length; i++) {
         if (bloodPath[i] === 'child') {
@@ -208,31 +207,7 @@ function analyzeComplexRelationship(
         }
     }
 
-    // Check for siblings (up then down by same amount)
-    if (generationsUp > 0 && generationsDown > 0 && generationsUp === generationsDown) {
-        isSibling = true;
-        generationsUp = 0;
-        generationsDown = 0;
-    }
-
-    // Determine relationship (INVERTED LOGIC)
-    if (isSibling) {
-        if (hasSpouse) {
-            return 'Beau-frère/Belle-sœur';
-        }
-        if (pathTypes.length === 2) {
-            return 'Frère/Sœur';
-        }
-        if (pathTypes.length === 4) {
-            return 'Cousin(e)';
-        }
-        if (pathTypes.length === 6) {
-            return 'Cousin(e) au 2ème degré';
-        }
-        return 'Cousin(e) éloigné(e)';
-    }
-
-    // INVERTED: generationsUp means going towards ancestors, so selected is ancestor
+    // Direct lineage - ancestors (going up only)
     if (generationsUp > 0 && generationsDown === 0) {
         if (hasSpouse) {
             if (generationsUp === 1) return 'Beau-parent';
@@ -247,7 +222,7 @@ function analyzeComplexRelationship(
         return `Ancêtre (${generationsUp}ème génération)`;
     }
 
-    // INVERTED: generationsDown means going towards descendants, so selected is descendant
+    // Direct lineage - descendants (going down only)
     if (generationsDown > 0 && generationsUp === 0) {
         if (hasSpouse) {
             if (generationsDown === 1) return 'Gendre/Belle-fille';
@@ -262,25 +237,73 @@ function analyzeComplexRelationship(
         return `Descendant (${generationsDown}ème génération)`;
     }
 
-    // Collateral relationships (aunts, uncles, nieces, nephews)
-    // INVERTED: up 1 + down 1 = selected is uncle/aunt
-    if (generationsUp === 1 && generationsDown === 1) {
-        if (hasSpouse) return 'Oncle/Tante par alliance';
-        return 'Oncle/Tante';
-    }
+    // Collateral relationships (siblings, cousins, aunts, uncles, etc.)
+    if (generationsUp > 0 && generationsDown > 0) {
+        const minGen = Math.min(generationsUp, generationsDown);
+        const maxGen = Math.max(generationsUp, generationsDown);
 
-    if (generationsUp === 2 && generationsDown === 1) {
-        return 'Grand-oncle/Grand-tante';
-    }
+        // Siblings and cousins (same generation level)
+        if (generationsUp === generationsDown) {
+            if (hasSpouse) {
+                return 'Beau-frère/Belle-sœur';
+            }
 
-    // INVERTED: down 1 + up 1 = selected is nephew/niece
-    if (generationsDown === 1 && generationsUp === 1) {
-        if (hasSpouse) return 'Neveu/Nièce par alliance';
-        return 'Neveu/Nièce';
-    }
+            // Siblings: up 1, down 1
+            if (generationsUp === 1) {
+                return 'Frère/Sœur';
+            }
 
-    if (generationsDown === 2 && generationsUp === 1) {
-        return 'Petit-neveu/Petite-nièce';
+            // Cousins: up N, down N (where N > 1)
+            // Degree = N - 1
+            const cousinDegree = generationsUp - 1;
+            if (cousinDegree === 1) {
+                return 'Cousin(e)';
+            } else if (cousinDegree === 2) {
+                return 'Cousin(e) au 2ème degré';
+            } else if (cousinDegree === 3) {
+                return 'Cousin(e) au 3ème degré';
+            } else {
+                return `Cousin(e) au ${cousinDegree}ème degré`;
+            }
+        }
+
+        // Aunts/Uncles (up less than down)
+        if (generationsUp < generationsDown) {
+            const generationDiff = generationsDown - generationsUp;
+
+            if (hasSpouse && generationDiff === 1) {
+                return 'Oncle/Tante par alliance';
+            }
+
+            if (generationDiff === 1) {
+                return 'Oncle/Tante';
+            } else if (generationDiff === 2) {
+                return 'Grand-oncle/Grand-tante';
+            } else if (generationDiff === 3) {
+                return 'Arrière-grand-oncle/Arrière-grand-tante';
+            } else {
+                return `Grand-oncle/Grand-tante (${generationDiff}ème génération)`;
+            }
+        }
+
+        // Nieces/Nephews (down less than up)
+        if (generationsDown < generationsUp) {
+            const generationDiff = generationsUp - generationsDown;
+
+            if (hasSpouse && generationDiff === 1) {
+                return 'Neveu/Nièce par alliance';
+            }
+
+            if (generationDiff === 1) {
+                return 'Neveu/Nièce';
+            } else if (generationDiff === 2) {
+                return 'Petit-neveu/Petite-nièce';
+            } else if (generationDiff === 3) {
+                return 'Arrière-petit-neveu/Arrière-petite-nièce';
+            } else {
+                return `Petit-neveu/Petite-nièce (${generationDiff}ème génération)`;
+            }
+        }
     }
 
     // Default for complex relationships
