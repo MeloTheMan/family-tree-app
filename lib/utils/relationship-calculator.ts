@@ -239,6 +239,17 @@ function analyzeRelationshipPath(
 
   const hasSpouse = relPath.includes('spouse');
 
+
+  /**
+ * Pure spouse relationship
+ */
+if (
+  relPath.length === 1 &&
+  relPath[0] === 'spouse'
+) {
+  return 'Conjoint(e)';
+}
+
   /**
    * Compact pattern
    */
@@ -421,7 +432,9 @@ if (pattern === 'child-parent-parent-parent') {
    * ========================================================
    */
 
-  const onlyChild = bloodPath.every(r => r === 'child');
+  const onlyChild =
+  bloodPath.length > 0 &&
+  bloodPath.every(r => r === 'child');
 
   if (onlyChild) {
 
@@ -434,7 +447,9 @@ if (pattern === 'child-parent-parent-parent') {
    * ========================================================
    */
 
-  const onlyParent = bloodPath.every(r => r === 'parent');
+  const onlyParent =
+  bloodPath.length > 0 &&
+  bloodPath.every(r => r === 'parent');
 
   if (onlyParent) {
 
